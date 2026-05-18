@@ -1,0 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #root {
+    width: 100%;
+    min-height: 100%;
+    overflow-x: hidden;
+  }
+
+  img,
+  video,
+  canvas,
+  svg,
+  iframe {
+    max-width: 100%;
+  }
+
+  table {
+    max-width: 100%;
+  }
+}
+
+@layer components {
+  .home-navbar-frame {
+    width: 100vw;
+    max-width: 1280px;
+  }
+
+  .home-hero-content {
+    width: min(280px, calc(100vw - 48px));
+    max-width: min(280px, calc(100vw - 48px));
+    min-width: 0;
+  }
+
+  @media (min-width: 430px) {
+    .home-hero-content {
+      width: calc(100vw - 48px);
+      max-width: calc(100vw - 48px);
+    }
+  }
+
+  @media (min-width: 768px) {
+    .home-hero-content {
+      width: 70%;
+      max-width: 70%;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .home-hero-content {
+      width: 58%;
+      max-width: 58%;
+    }
+  }
+}
+
+/* Modo de Alto Contraste */
+html.high-contrast body {
+  background-color: #000 !important;
+  color: #fff !important;
+}
+
+html.high-contrast *:not(i):not([class*="ri-"]) {
+  background-color: #000 !important;
+  color: #fff !important;
+  border-color: #fff !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+html.high-contrast a, 
+html.high-contrast button {
+  color: #ffff00 !important;
+  text-decoration: underline !important;
+}
+
+html.high-contrast img, 
+html.high-contrast video {
+  filter: grayscale(100%) contrast(150%) !important;
+}
+
+html.high-contrast .bg-white,
+html.high-contrast .bg-gray-50,
+html.high-contrast .bg-gray-100 {
+  background-color: #000 !important;
+}
+
+html.high-contrast .text-gray-900,
+html.high-contrast .text-gray-700,
+html.high-contrast .text-gray-600 {
+  color: #fff !important;
+}
