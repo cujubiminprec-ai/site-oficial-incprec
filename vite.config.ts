@@ -72,13 +72,20 @@ export default defineConfig({
   ],
   base,
   build: {
-    sourcemap: true,
+    sourcemap: false,
     outDir: 'out',
   },
   resolve: {
-    alias: {
-      "@": resolve(__dirname, "./src"),
-    },
+    alias: [
+      { find: "@/components", replacement: resolve(__dirname, "./src/views/components") },
+      { find: "@/contexts", replacement: resolve(__dirname, "./src/views/contexts") },
+      { find: "@/hooks", replacement: resolve(__dirname, "./src/views/hooks") },
+      { find: "@/i18n", replacement: resolve(__dirname, "./src/views/i18n") },
+      { find: "@/mocks", replacement: resolve(__dirname, "./src/views/mocks") },
+      { find: "@/pages", replacement: resolve(__dirname, "./src/views/pages") },
+      { find: "@/router", replacement: resolve(__dirname, "./src/views/router") },
+      { find: "@", replacement: resolve(__dirname, "./src") },
+    ],
   },
   server: {
     port: 3032,

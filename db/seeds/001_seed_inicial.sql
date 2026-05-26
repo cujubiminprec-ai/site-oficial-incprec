@@ -20,8 +20,8 @@ INSERT INTO configuracoes_site (
     'Garantindo a proteção previdenciária dos servidores municipais com eficiência e transparência.',
     '#1a3a5c', '#c8a951', '#e55f1c',
     'inprec@cujubim.ro.gov.br', '(69) 99250-9093', '(69) 99250-9093',
-    'Av. Condor, n° 2588 Centro', 'Cujubim', 'RO', '76.864-000',
-    'De Segunda a Sexta, das 07:30h às 13:30h',
+    'Av. Condor, n 2588 Centro', 'Cujubim', 'RO', '76.864-000',
+    'Segunda a Sexta — 07h30 às 13h30',
     '© 2026 INPREC — Instituto de Previdência dos Servidores Públicos Municipais de Cujubim/RO. Todos os direitos reservados.',
     'INPREC — Previdência Municipal Cujubim/RO',
     'Instituto de Previdência dos Servidores Públicos Municipais de Cujubim. Aposentadoria, pensão, benefícios e transparência para servidores municipais de Rondônia.'
@@ -29,15 +29,14 @@ INSERT INTO configuracoes_site (
 
 -- ============================================================
 -- Usuário administrador padrão
--- ATENÇÃO: Troque a senha_hash por um hash bcrypt real em produção!
--- Hash abaixo é fictício — use: bcrypt.hash('sua_senha', 12)
+-- Senha: admin123 (hash bcrypt com 12 rounds)
 -- ============================================================
 INSERT INTO usuarios_admin (
     nome, email, senha_hash, nivel_acesso, permissoes, ativo, descricao
 ) VALUES (
     'Administrador Geral',
-    'admin@inprec.net',
-    '$2b$12$HASH_BCRYPT_REAL_AQUI',   -- SUBSTITUA pelo hash bcrypt real
+    'admin@inprec.com',
+    '$2a$12$W3ppwGZ6D/7wWu.x0/Qj8e9KDSfBp/e1zloif7O9A2HQ5Q9L7GfLO',   -- admin123
     'superadmin',
     ARRAY[
         'dashboard','analytics','noticias','eventos','cursos','eventos-inscritos',

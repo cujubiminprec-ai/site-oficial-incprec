@@ -1,4 +1,4 @@
-import { apiFetch, getToken, setRefreshToken, setToken } from "./api";
+﻿import { apiFetch, getToken, setRefreshToken, setToken } from "./api";
 
 export interface UploadResponse {
   id?: string | number;
@@ -58,7 +58,7 @@ export const uploadService = {
       const response = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: "admin@inprec.net", senha: "inprec@2026" }),
+        body: JSON.stringify({ email: "admin@inprec.com", senha: "admin123" }),
       });
       if (!response.ok) return null;
       const data = await response.json();

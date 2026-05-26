@@ -26,13 +26,19 @@
     "strictPropertyInitialization": false,
     "noImplicitThis": false,
     "useUnknownInCatchVariables": false,
-    "alwaysStrict": false,
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": false,
     "noUncheckedSideEffectImports": false,
     "paths": {
       "@/*": ["./src/*"],
+      "@/components/*": ["./src/views/components/*"],
+      "@/contexts/*": ["./src/views/contexts/*"],
+      "@/hooks/*": ["./src/views/hooks/*"],
+      "@/i18n/*": ["./src/views/i18n/*"],
+      "@/mocks/*": ["./src/views/mocks/*"],
+      "@/pages/*": ["./src/views/pages/*"],
+      "@/router/*": ["./src/views/router/*"],
     }
   },
-  "include": ["src", "vite-env.d.ts"]
+  "include": ["src/views", "src/services", "src/utils/cookies.ts", "src/utils/documentViewer.ts", "src/utils/gestoresData.ts", "src/utils/uploadFolders.ts", "vite-env.d.ts"]
 }

@@ -48,7 +48,7 @@
 - [x] Botão flutuante Chat (Tawk.to)
 - [x] Botões flutuantes configuráveis pelo painel
 
-### Painel Admin (Fase 3 - SQLite local, preparado para MySQL)
+### Painel Admin (Fase 3 - MySQL local, preparado para MySQL)
 - [ ] Login seguro via JWT no backend
 - [ ] CRUD de Slides
 - [ ] CRUD de Serviços
@@ -58,7 +58,7 @@
 
 ---
 
-## 4. Modelo de Dados (SQLite - Fase 3, preparado para MySQL)
+## 4. Modelo de Dados (MySQL - Fase 3, preparado para MySQL)
 
 ### Tabela: usuarios
 | Campo | Tipo | Descrição |
@@ -131,7 +131,7 @@
 
 ## 5. Integrações e Backend
 
-- **SQLite:** banco local atual para login admin, tabelas e arquivos do painel. Estrutura preparada para migração futura para MySQL.
+- **MySQL:** banco local atual para login admin, tabelas e arquivos do painel. Estrutura preparada para migração futura para MySQL.
 - **Tawk.to:** Chat online integrado — Fase 1 (snippet)
 - **Acessibilidade:** recursos de contraste e tamanho de fonte no próprio portal
 - **WhatsApp:** Link direto via wa.me — Fase 1
@@ -149,9 +149,9 @@
 - **Objetivo:** Implementar as páginas detalhadas de Notícias, Serviços, Transparência, Quem Somos e Contato
 - **Entregável:** Todas as rotas funcionando com conteúdo completo e responsivo
 
-### Fase 3: Painel Admin + SQLite
+### Fase 3: Painel Admin + MySQL
 - **Objetivo:** CMS completo com autenticação, CRUD de todos os conteúdos e uploads
-- **Entregável:** Painel /admin funcional e seguro, integrado ao backend SQLite e preparado para MySQL
+- **Entregável:** Painel /admin funcional e seguro, integrado ao backend MySQL e preparado para MySQL
 
 ### Fase 4: Deploy e CI/CD
 - **Objetivo:** Configurar pipeline GitHub Actions para deploy automático na Hostinger com HTTPS e variáveis de ambiente seguras

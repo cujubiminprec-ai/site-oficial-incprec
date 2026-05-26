@@ -3,7 +3,7 @@
 set -euo pipefail
 
 APP_NAME="inprec"
-BACKEND_NAME="inprec-backend"
+PROCESS_NAME="inprec"
 BACKUP_DIR="./backups"
 TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 
@@ -22,31 +22,17 @@ prompt_default() {
   local label="$1"
   local default_value="$2"
   local value
-
   read -r -p "$label [$default_value]: " value
   printf "%s" "${value:-$default_value}"
-}
-
-prompt_required() {
-  local label="$1"
-  local value=""
-
-  while [ -z "$value" ]; do
-    read -r -p "$label: " value
-  done
-
-  printf "%s" "$value"
 }
 
 prompt_secret() {
   local label="$1"
   local value=""
-
   while [ -z "$value" ]; do
     read -r -s -p "$label: " value
     printf "\n"
   done
-
   printf "%s" "$value"
 }
 
@@ -54,166 +40,86 @@ generate_secret() {
   if command -v openssl >/dev/null 2>&1; then
     openssl rand -hex 48
   else
-    local secret
     set +o pipefail
-    secret="$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 96)"
+    tr -dc 'A-Za-z0-9' </dev/urandom | head -c 96
     set -o pipefail
-    printf "%s\n" "$secret"
+  fi
+}
+
+set_env_value() {
+  local file="$1"
+  local key="$2"
+  local value="$3"
+  if grep -q "^${key}=" "$file"; then
+    sed -i "s|^${key}=.*|${key}=${value}|" "$file"
+  else
+    printf "%s=%s\n" "$key" "$value" >> "$file"
   fi
 }
 
 check_node() {
-  command -v node >/dev/null 2>&1 || fail "Node.js nao encontrado. Instale Node.js 20+ antes do deploy."
+  command -v node >/dev/null 2>&1 || fail "Node.js nao encontrado. Instale Node.js 20 ou 22."
   command -v npm >/dev/null 2>&1 || fail "npm nao encontrado."
   local node_major
   node_major="$(node -p "process.versions.node.split('.')[0]")"
   if [ "$node_major" -lt 20 ] || [ "$node_major" -gt 22 ]; then
-    fail "Use Node.js 20 ou 22. Versao atual: $(node -v). O backend usa better-sqlite3 e pode falhar no Node 24+."
+    fail "Use Node.js 20 ou 22. Versao atual: $(node -v)."
   fi
 }
 
 check_pm2() {
-  command -v pm2 >/dev/null 2>&1 || fail "PM2 nao encontrado. Instale com: npm install -g pm2"
-}
-
-write_env_files() {
-  local http_port="$1"
-  local public_url="$2"
-  local vite_api_url="$3"
-  local db_type="$4"
-  local db_host="$5"
-  local db_port="$6"
-  local db_name="$7"
-  local db_user="$8"
-  local db_password="$9"
-  local db_path="${10}"
-  local upload_path="${11}"
-  local admin_email="${12}"
-  local admin_password="${13}"
-  local jwt_secret="${14}"
-
-  cat > .env <<EOF
-# Gerado por deploy.sh em $(date -Iseconds)
-APP_NAME=$APP_NAME
-HTTP_PORT=$http_port
-FRONTEND_URL=$public_url
-VITE_API_URL=$vite_api_url
-EOF
-
-  mkdir -p backend
-  cat > backend/.env <<EOF
-# Gerado por deploy.sh em $(date -Iseconds)
-NODE_ENV=production
-PORT=3001
-API_URL=$public_url
-FRONTEND_URL=$public_url
-
-# Banco de dados
-# O backend atual usa SQLite em runtime. Os demais campos ficam preparados
-# para futura troca de driver.
-DB_TYPE=$db_type
-DB_PATH=$db_path
-DB_HOST=$db_host
-DB_PORT=$db_port
-DB_NAME=$db_name
-DB_USER=$db_user
-DB_PASSWORD=$db_password
-
-# JWT
-JWT_SECRET=$jwt_secret
-JWT_EXPIRES_IN=8h
-JWT_REFRESH_EXPIRES_IN=7d
-
-# Uploads
-UPLOAD_PATH=$upload_path
-UPLOAD_MAX_SIZE_MB=50
-ALLOWED_IMAGE_TYPES=image/jpeg,image/png,image/webp
-ALLOWED_DOC_TYPES=application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document
-
-# Rate limit e logs
-RATE_LIMIT_WINDOW_MS=900000
-RATE_LIMIT_MAX_REQUESTS=200
-LOG_LEVEL=combined
-
-# Usuario inicial do seed
-ADMIN_EMAIL=$admin_email
-ADMIN_PASSWORD=$admin_password
-EOF
-
-  chmod 600 .env backend/.env 2>/dev/null || true
+  if ! command -v pm2 >/dev/null 2>&1; then
+    warn "PM2 nao encontrado. Instalando globalmente..."
+    npm install -g pm2
+  fi
+  command -v pm2 >/dev/null 2>&1 || fail "PM2 nao encontrado."
 }
 
 configure_env() {
-  header "Configuracao do deploy em VPS"
+  header "Configuracao do monolito"
 
-  local http_port public_url vite_api_url db_type db_host db_port db_name db_user db_password db_path upload_path
-  local admin_email admin_password jwt_secret
-
+  local http_port public_url port db_host db_port db_name db_user db_password upload_path admin_email admin_password jwt_secret
   http_port="$(prompt_default "Porta publica do site/Nginx" "80")"
   public_url="$(prompt_default "URL publica (dominio ou IP, com http/https)" "http://localhost:${http_port}")"
-  vite_api_url="$(prompt_default "URL da API para o frontend" "/api")"
-
-  printf "\nTipo de banco:\n"
-  printf "  1) sqlite (recomendado para este projeto hoje)\n"
-  printf "  2) postgresql (credenciais salvas no .env; backend ainda precisa de driver)\n"
-  printf "  3) mysql (credenciais salvas no .env; backend ainda precisa de driver)\n"
-  local db_choice
-  db_choice="$(prompt_default "Escolha" "1")"
-
-  db_host=""
-  db_port=""
-  db_name=""
-  db_user=""
-  db_password=""
-  db_path="$(pwd)/backend/data/inprec.db"
-
-  case "$db_choice" in
-    1|sqlite)
-      db_type="sqlite"
-      db_path="$(prompt_default "Caminho do SQLite" "$db_path")"
-      ;;
-    2|postgres|postgresql)
-      db_type="postgresql"
-      db_host="$(prompt_required "Host do PostgreSQL")"
-      db_port="$(prompt_default "Porta do PostgreSQL" "5432")"
-      db_name="$(prompt_required "Nome do banco")"
-      db_user="$(prompt_required "Usuario do banco")"
-      db_password="$(prompt_secret "Senha do banco")"
-      warn "As credenciais foram salvas, mas o backend atual esta implementado com SQLite."
-      ;;
-    3|mysql|mariadb)
-      db_type="mysql"
-      db_host="$(prompt_required "Host do MySQL/MariaDB")"
-      db_port="$(prompt_default "Porta do MySQL/MariaDB" "3306")"
-      db_name="$(prompt_required "Nome do banco")"
-      db_user="$(prompt_required "Usuario do banco")"
-      db_password="$(prompt_secret "Senha do banco")"
-      warn "As credenciais foram salvas, mas o backend atual esta implementado com SQLite."
-      ;;
-    *)
-      fail "Tipo de banco invalido."
-      ;;
-  esac
-
+  port="$(prompt_default "Porta interna do Node" "3001")"
+  db_host="$(prompt_default "Host do MySQL" "127.0.0.1")"
+  db_port="$(prompt_default "Porta do MySQL" "3306")"
+  db_name="$(prompt_default "Nome do banco MySQL" "inprec")"
+  db_user="$(prompt_default "Usuario do MySQL" "inprec")"
+  db_password="$(prompt_secret "Senha do MySQL")"
   upload_path="$(prompt_default "Pasta de uploads" "$(pwd)/public/uploads")"
-  admin_email="$(prompt_default "E-mail do admin inicial" "admin@inprec.net")"
+  admin_email="$(prompt_default "E-mail do admin inicial" "admin@inprec.com")"
   admin_password="$(prompt_secret "Senha do admin inicial")"
   jwt_secret="$(generate_secret)"
 
-  write_env_files \
-    "$http_port" "$public_url" "$vite_api_url" "$db_type" "$db_host" "$db_port" \
-    "$db_name" "$db_user" "$db_password" "$db_path" "$upload_path" \
-    "$admin_email" "$admin_password" "$jwt_secret"
+  cp .env.example .env
+  set_env_value .env "APP_NAME" "$APP_NAME"
+  set_env_value .env "APP_NODE_ENV" "production"
+  set_env_value .env "PORT" "$port"
+  set_env_value .env "HTTP_PORT" "$http_port"
+  set_env_value .env "API_URL" "$public_url"
+  set_env_value .env "FRONTEND_URL" "$public_url"
+  set_env_value .env "VITE_API_URL" "/api"
+  set_env_value .env "DB_CLIENT" "mysql"
+  set_env_value .env "DB_HOST" "$db_host"
+  set_env_value .env "DB_PORT" "$db_port"
+  set_env_value .env "DB_NAME" "$db_name"
+  set_env_value .env "DB_USER" "$db_user"
+  set_env_value .env "DB_PASSWORD" "$db_password"
+  set_env_value .env "UPLOAD_PATH" "$upload_path"
+  set_env_value .env "JWT_SECRET" "$jwt_secret"
+  set_env_value .env "ADMIN_EMAIL" "$admin_email"
+  set_env_value .env "ADMIN_PASSWORD" "$admin_password"
 
-  mkdir -p "$(dirname "$db_path")" "$upload_path" "$BACKUP_DIR"
+  mkdir -p "$upload_path" "$BACKUP_DIR"
   touch "$upload_path/.gitkeep" 2>/dev/null || true
-
-  log "Arquivos .env e backend/.env configurados."
+  chmod 600 .env 2>/dev/null || true
+  log ".env configurado para o monolito."
 }
 
 ensure_env() {
-  if [ ! -f ".env" ] || [ ! -f "backend/.env" ]; then
-    warn "Arquivos de ambiente ausentes. Iniciando configuracao interativa."
+  if [ ! -f ".env" ]; then
+    warn ".env ausente. Iniciando configuracao interativa."
     configure_env
   fi
 }
@@ -222,72 +128,72 @@ install_deps() {
   header "Instalando dependencias"
   check_node
   npm install
-  (cd backend && npm install)
 }
 
 build_app() {
-  header "Build da aplicacao"
+  header "Build da aplicacao monolitica"
   check_node
   ensure_env
-  npm run build
-  (cd backend && npm run build)
+  npm run build:app
 }
 
 setup_db() {
   header "Preparando banco e usuario admin"
   check_node
   ensure_env
-  (cd backend && npm run setup)
+  npm run setup
 }
 
 backup() {
-  header "Backup do SQLite"
+  header "Backup do MySQL"
   ensure_env
   mkdir -p "$BACKUP_DIR"
 
-  local db_path
-  db_path="$(grep '^DB_PATH=' backend/.env | cut -d '=' -f2-)"
-  case "$db_path" in
-    /*) ;;
-    *) db_path="backend/$db_path" ;;
-  esac
+  local db_host db_port db_name db_user db_password
+  db_host="$(grep '^DB_HOST=' .env | cut -d '=' -f2-)"
+  db_port="$(grep '^DB_PORT=' .env | cut -d '=' -f2-)"
+  db_name="$(grep '^DB_NAME=' .env | cut -d '=' -f2-)"
+  db_user="$(grep '^DB_USER=' .env | cut -d '=' -f2-)"
+  db_password="$(grep '^DB_PASSWORD=' .env | cut -d '=' -f2-)"
 
-  if [ ! -f "$db_path" ]; then
-    warn "Banco ainda nao existe em: $db_path"
+  if ! command -v mysqldump >/dev/null 2>&1; then
+    warn "mysqldump nao encontrado. Pulei backup do banco."
     return 0
   fi
 
-  cp "$db_path" "$BACKUP_DIR/inprec_db_${TIMESTAMP}.db"
-  log "Backup salvo em ${BACKUP_DIR}/inprec_db_${TIMESTAMP}.db"
+  MYSQL_PWD="$db_password" mysqldump -h "$db_host" -P "${db_port:-3306}" -u "$db_user" "$db_name" > "$BACKUP_DIR/inprec_db_${TIMESTAMP}.sql"
+  log "Backup salvo em ${BACKUP_DIR}/inprec_db_${TIMESTAMP}.sql"
 }
 
 start() {
-  header "Iniciando backend com PM2"
+  header "Iniciando monolito com PM2"
   check_pm2
-  ensure_env
   build_app
   setup_db
-  (cd backend && pm2 start dist/server.js --name "$BACKEND_NAME" --update-env)
+  if pm2 describe "$PROCESS_NAME" >/dev/null 2>&1; then
+    pm2 restart "$PROCESS_NAME" --update-env
+  else
+    pm2 start dist/server.js --name "$PROCESS_NAME" --update-env
+  fi
   pm2 save
   status
 }
 
 stop() {
-  header "Parando backend"
+  header "Parando monolito"
   check_pm2
-  pm2 stop "$BACKEND_NAME" || true
+  pm2 stop "$PROCESS_NAME" || true
 }
 
 restart() {
-  header "Reiniciando backend"
+  header "Reiniciando monolito"
   check_pm2
-  ensure_env
   build_app
   setup_db
-  if pm2 describe "$BACKEND_NAME" >/dev/null 2>&1; then
-    pm2 restart "$BACKEND_NAME" --update-env
+  if pm2 describe "$PROCESS_NAME" >/dev/null 2>&1; then
+    pm2 restart "$PROCESS_NAME" --update-env
   else
-    (cd backend && pm2 start dist/server.js --name "$BACKEND_NAME" --update-env)
+    pm2 start dist/server.js --name "$PROCESS_NAME" --update-env
   fi
   pm2 save
   status
@@ -302,30 +208,29 @@ update() {
 
 logs() {
   check_pm2
-  pm2 logs "$BACKEND_NAME"
+  pm2 logs "$PROCESS_NAME"
 }
 
 reset_admin() {
   header "Resetando usuario admin"
   check_node
   ensure_env
-  (cd backend && npm run reset-admin)
+  npm run reset-admin
 }
 
 status() {
   header "Status"
   check_pm2
-  pm2 status "$BACKEND_NAME"
-  printf "\nFrontend build: %s\n" "$(pwd)/out"
-  printf "Backend API: http://localhost:3001/api\n"
+  pm2 status "$PROCESS_NAME"
+  printf "\nApp/API: http://localhost:3001\n"
+  printf "Frontend build: %s\n" "$(pwd)/out"
+  printf "Servidor: %s\n" "$(pwd)/dist/server.js"
+  printf "Banco: %s@%s:%s/%s\n" "$(grep '^DB_USER=' .env 2>/dev/null | cut -d '=' -f2-)" "$(grep '^DB_HOST=' .env 2>/dev/null | cut -d '=' -f2-)" "$(grep '^DB_PORT=' .env 2>/dev/null | cut -d '=' -f2-)" "$(grep '^DB_NAME=' .env 2>/dev/null | cut -d '=' -f2-)"
 }
 
 nginx_config() {
   header "Configuracao Nginx"
-  ensure_env
-  local root_dir
-  root_dir="$(pwd)/out"
-  sed "s#__APP_ROOT__#${root_dir}#g" nginx.conf
+  cat nginx.conf
 }
 
 help() {
@@ -333,18 +238,18 @@ help() {
 Uso: bash deploy.sh [comando]
 
 Comandos:
-  init      Configura .env e backend/.env perguntando porta, banco e credenciais
-  install   Instala dependencias do frontend e backend
-  build     Compila frontend em out/ e backend em backend/dist/
-  start     Compila e inicia o backend com PM2
-  stop      Para o backend no PM2
-  restart   Recompila e reinicia o backend no PM2
-  update    Backup + install + restart
-  logs      Mostra logs do backend no PM2
-  status    Mostra status do backend e caminho do frontend
-  backup    Faz backup do SQLite
+  init         Configura .env do monolito
+  install      Instala dependencias
+  build        Compila frontend em out/ e servidor em dist/
+  start        Compila, prepara banco e inicia com PM2
+  stop         Para o processo PM2
+  restart      Recompila e reinicia com PM2
+  update       Backup + install + restart
+  logs         Mostra logs do PM2
+  status       Mostra status do processo
+  backup       Faz backup do MySQL com mysqldump
   reset-admin  Cria/atualiza o admin usando ADMIN_EMAIL e ADMIN_PASSWORD
-  nginx     Imprime uma configuracao Nginx pronta para esta pasta
+  nginx        Imprime a configuracao Nginx
 EOF
 }
 

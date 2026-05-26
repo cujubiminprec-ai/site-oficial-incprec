@@ -1,26 +1,30 @@
-import { apiFetch } from "./api";
+import { apiFetch, getToken } from "./api";
 
 export interface Manifestacao {
   id?: string;
   protocolo: string;
   tipo: "reclamacao" | "sugestao" | "elogio" | "denuncia" | "informacao";
   assunto: string;
-  descricao: string;
+  descricao?: string;
   nome?: string;
   email?: string;
   telefone?: string;
   anonimo: boolean;
-  status?: "pendente" | "em_analise" | "respondida" | "arquivada";
+  status?: string;
   resposta?: string;
   data_resposta?: string;
+  criado_em?: string;
+  respondido_em?: string;
   created_at?: string;
+  [key: string]: any;
 }
 
-export interface ConsultaProtocoloResponse {
+export interface ConsultaProtocoloResponse extends Partial<Manifestacao> {
   encontrado: boolean;
   manifestacao?: Manifestacao;
   diasRestantes?: number;
   prazoVencido?: boolean;
+  [key: string]: any;
 }
 
 export const ouvidoriaService = {
@@ -32,20 +36,18 @@ export const ouvidoriaService = {
   },
 
   async consultarProtocolo(protocolo: string): Promise<ConsultaProtocoloResponse> {
-    return apiFetch<ConsultaProtocoloResponse>(`/ouvidoria/protocolo/${protocolo}`);
+    return apiFetch<ConsultaProtocoloResponse>(`/ouvidoria/consultar/${protocolo}`);
   },
 
   async listar(): Promise<Manifestacao[]> {
-    const token = localStorage.getItem("inprec_api_token");
-    return apiFetch<Manifestacao[]>("/ouvidoria", { token });
+    return apiFetch<Manifestacao[]>("/ouvidoria", { token: getToken() });
   },
 
   async responder(id: string, resposta: string): Promise<Manifestacao> {
-    const token = localStorage.getItem("inprec_api_token");
     return apiFetch<Manifestacao>(`/ouvidoria/${id}/responder`, {
-      method: "PUT",
+      method: "PATCH",
       body: { resposta },
-      token,
+      token: getToken(),
     });
   },
 };

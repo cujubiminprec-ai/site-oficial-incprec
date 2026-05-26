@@ -1,7 +1,8 @@
 import { apiFetch, getToken } from "./api";
+import type { TransparenciaMenu } from "@/mocks/transparencia-docs";
 
 export interface DocumentoTransparencia {
-  id?: string;
+  id?: number;
   titulo: string;
   descricao?: string;
   categoria: string;
@@ -13,10 +14,11 @@ export interface DocumentoTransparencia {
   ativo: boolean;
   ordem: number;
   created_at?: string;
+  [key: string]: any;
 }
 
 export interface FinancaInvestimento {
-  id?: string;
+  id?: number;
   titulo: string;
   descricao?: string;
   valor: number;
@@ -27,10 +29,11 @@ export interface FinancaInvestimento {
   url?: string;
   ativo: boolean;
   created_at?: string;
+  [key: string]: any;
 }
 
 export interface Legislacao {
-  id?: string;
+  id?: number;
   titulo: string;
   tipo: string;
   numero?: string;
@@ -39,6 +42,7 @@ export interface Legislacao {
   url: string;
   ativo: boolean;
   created_at?: string;
+  [key: string]: any;
 }
 
 export interface PainelSlide {
@@ -56,11 +60,16 @@ export interface PainelSlide {
 }
 
 export const transparenciaService = {
-  async listarDocumentos(): Promise<DocumentoTransparencia[]> {
-    return apiFetch<DocumentoTransparencia[]>("/transparencia/documentos");
+  async listarDocumentos(): Promise<any[]> {
+    return apiFetch<any[]>("/transparencia/documentos");
   },
 
-  async criarDocumento(doc: Omit<DocumentoTransparencia, "id" | "created_at">): Promise<DocumentoTransparencia> {
+  async listarDocumentosAdmin(): Promise<any[]> {
+    const token = getToken();
+    return apiFetch<any[]>("/transparencia/documentos/admin", { token });
+  },
+
+  async criarDocumento(doc: any): Promise<any> {
     const token = getToken();
     return apiFetch<DocumentoTransparencia>("/transparencia/documentos", {
       method: "POST",
@@ -69,11 +78,16 @@ export const transparenciaService = {
     });
   },
 
-  async listarFinancas(): Promise<FinancaInvestimento[]> {
-    return apiFetch<FinancaInvestimento[]>("/transparencia/financas");
+  async listarFinancas(): Promise<any[]> {
+    return apiFetch<any[]>("/transparencia/financas");
   },
 
-  async criarFinanca(financa: Omit<FinancaInvestimento, "id" | "created_at">): Promise<FinancaInvestimento> {
+  async listarFinancasAdmin(): Promise<any[]> {
+    const token = getToken();
+    return apiFetch<any[]>("/transparencia/financas/admin", { token });
+  },
+
+  async criarFinanca(financa: any): Promise<any> {
     const token = getToken();
     return apiFetch<FinancaInvestimento>("/transparencia/financas", {
       method: "POST",
@@ -86,13 +100,33 @@ export const transparenciaService = {
     return apiFetch<Legislacao[]>("/transparencia/legislacao");
   },
 
-  async criarLegislacao(leg: Omit<Legislacao, "id" | "created_at">): Promise<Legislacao> {
+  async criarLegislacao(leg: any): Promise<any> {
     const token = getToken();
     return apiFetch<Legislacao>("/transparencia/legislacao", {
       method: "POST",
       body: leg,
       token,
     });
+  },
+
+  async salvarDocumento(doc: any): Promise<any> {
+    const token = getToken();
+    return apiFetch<any>(doc.id ? `/transparencia/documentos/${doc.id}` : "/transparencia/documentos", { method: doc.id ? "PUT" : "POST", body: doc, token });
+  },
+
+  async excluirDocumento(id: number | string): Promise<void> {
+    const token = getToken();
+    return apiFetch<void>(`/transparencia/documentos/${id}`, { method: "DELETE", token });
+  },
+
+  async salvarFinanca(financa: any): Promise<any> {
+    const token = getToken();
+    return apiFetch<any>(financa.id ? `/transparencia/financas/${financa.id}` : "/transparencia/financas", { method: financa.id ? "PUT" : "POST", body: financa, token });
+  },
+
+  async excluirFinanca(id: number | string): Promise<void> {
+    const token = getToken();
+    return apiFetch<void>(`/transparencia/financas/${id}`, { method: "DELETE", token });
   },
 
   async listarPainel(): Promise<PainelSlide[]> {
@@ -110,6 +144,33 @@ export const transparenciaService = {
       dataAtualizacao: item.updatedAt ? item.updatedAt.split(" ")[0] : "",
       slidesImg: Array.isArray(item.slideImages) ? item.slideImages : (typeof item.slideImages === "string" ? JSON.parse(item.slideImages) : [])
     }));
+  },
+
+  async obterPainelConfig<T = any>(): Promise<T | null> {
+    return apiFetch<any>("/configuracoes/app/painel_transparencia").catch(() => null);
+  },
+
+  async salvarPainelConfig(config: any): Promise<any> {
+    const token = getToken();
+    return apiFetch<any>("/configuracoes/app/painel_transparencia", { method: "PUT", body: config, token });
+  },
+
+  async listarMenus(): Promise<TransparenciaMenu[]> {
+    return apiFetch<TransparenciaMenu[]>("/configuracoes/app/transparencia_menus").catch(() => []);
+  },
+
+  async listarMenusAdmin(): Promise<TransparenciaMenu[]> {
+    const token = getToken();
+    return apiFetch<TransparenciaMenu[]>("/configuracoes/app/transparencia_menus", { token }).catch(() => []);
+  },
+
+  async salvarMenus(menus: TransparenciaMenu[]): Promise<TransparenciaMenu[]> {
+    const token = getToken();
+    return apiFetch<TransparenciaMenu[]>("/configuracoes/app/transparencia_menus", {
+      method: "PUT",
+      body: menus,
+      token,
+    });
   },
 
   async listarPainelAdmin(): Promise<PainelSlide[]> {
@@ -193,3 +254,8 @@ export const transparenciaService = {
     });
   }
 };
+
+
+
+
+

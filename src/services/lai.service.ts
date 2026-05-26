@@ -1,30 +1,36 @@
-import { apiFetch } from "./api";
+import { apiFetch, getToken } from "./api";
 
 export interface PedidoLAI {
   id?: string;
   protocolo: string;
-  solicitante: string;
+  solicitante?: string;
   email: string;
   cpf?: string;
   telefone?: string;
   endereco?: string;
-  descricao: string;
-  classificacao: "cidadao" | "jornalista" | "empresa" | "outro";
-  formaResposta: "email" | "correio" | "presencial";
-  status?: "pendente" | "em_analise" | "respondida" | "arquivada" | "prorrogada";
+  descricao?: string;
+  classificacao?: "cidadao" | "jornalista" | "empresa" | "outro";
+  formaResposta?: "email" | "correio" | "presencial";
+  status?: string;
   resposta?: string;
   data_resposta?: string;
+  criado_em?: string;
+  respondido_em?: string;
+  prazo_legal?: string;
+  descricao_pedido?: string;
   prorrogado?: boolean;
   motivo_prorrogacao?: string;
   created_at?: string;
+  [key: string]: any;
 }
 
-export interface ConsultaLAIResponse {
+export interface ConsultaLAIResponse extends Partial<PedidoLAI> {
   encontrado: boolean;
   pedido?: PedidoLAI;
   diasRestantes?: number;
   prazoVencido?: boolean;
   prorrogado?: boolean;
+  [key: string]: any;
 }
 
 export const laiService = {
@@ -36,20 +42,18 @@ export const laiService = {
   },
 
   async consultarProtocolo(protocolo: string): Promise<ConsultaLAIResponse> {
-    return apiFetch<ConsultaLAIResponse>(`/lai/protocolo/${protocolo}`);
+    return apiFetch<ConsultaLAIResponse>(`/lai/consultar/${protocolo}`);
   },
 
   async listar(): Promise<PedidoLAI[]> {
-    const token = localStorage.getItem("inprec_api_token");
-    return apiFetch<PedidoLAI[]>("/lai", { token });
+    return apiFetch<PedidoLAI[]>("/lai", { token: getToken() });
   },
 
   async responder(id: string, resposta: string): Promise<PedidoLAI> {
-    const token = localStorage.getItem("inprec_api_token");
     return apiFetch<PedidoLAI>(`/lai/${id}/responder`, {
-      method: "PUT",
+      method: "PATCH",
       body: { resposta },
-      token,
+      token: getToken(),
     });
   },
 };

@@ -7,21 +7,21 @@
 -- Portal da transparência — documentos públicos
 -- ============================================================
 CREATE TABLE IF NOT EXISTS transparencia_documentos (
-    id          BIGSERIAL PRIMARY KEY,
+    id          BIGINT PRIMARY KEY AUTO_INCREMENT,
     titulo      VARCHAR(500) NOT NULL,
     categoria   VARCHAR(100) NOT NULL,    -- Relatórios, Balanços, Contratos, Licitações, etc.
     icone       VARCHAR(100) DEFAULT 'ri-file-text-line',
-    ano         INTEGER,
+    ano         INT,
     tipo_arquivo VARCHAR(20) DEFAULT 'PDF',
     tamanho     VARCHAR(30),
     arquivo_url TEXT,
     link_externo TEXT,
     descricao   TEXT,
-    destaque    BOOLEAN NOT NULL DEFAULT FALSE,
-    ativo       BOOLEAN NOT NULL DEFAULT TRUE,
+    destaque    TINYINT(1) NOT NULL DEFAULT 0,
+    ativo       TINYINT(1) NOT NULL DEFAULT 1,
     publicado_em DATE,
-    criado_em   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    criado_em   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_transp_docs_categoria ON transparencia_documentos (categoria);
@@ -33,19 +33,19 @@ CREATE INDEX IF NOT EXISTS idx_transp_docs_ativo     ON transparencia_documentos
 -- Finanças e investimentos — documentos específicos
 -- ============================================================
 CREATE TABLE IF NOT EXISTS financas_documentos (
-    id          BIGSERIAL PRIMARY KEY,
+    id          BIGINT PRIMARY KEY AUTO_INCREMENT,
     titulo      VARCHAR(500) NOT NULL,
     secao       VARCHAR(100) NOT NULL,   -- prestacao-contas, avaliacao-atuarial, balancetes, etc.
-    ano         INTEGER NOT NULL,
+    ano         INT NOT NULL,
     tipo_arquivo VARCHAR(20) DEFAULT 'PDF',
     tamanho     VARCHAR(30),
     arquivo_url TEXT,
     link_externo TEXT,
     descricao   TEXT,
-    ativo       BOOLEAN NOT NULL DEFAULT TRUE,
+    ativo       TINYINT(1) NOT NULL DEFAULT 1,
     publicado_em DATE,
-    criado_em   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    criado_em   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_fin_docs_secao ON financas_documentos (secao);
@@ -59,16 +59,16 @@ COMMENT ON COLUMN financas_documentos.secao IS
 -- Indicadores/cards exibidos no painel de transparência da home
 -- ============================================================
 CREATE TABLE IF NOT EXISTS painel_transparencia (
-    id          SERIAL PRIMARY KEY,
+    id          INT PRIMARY KEY AUTO_INCREMENT,
     titulo      VARCHAR(200) NOT NULL,
     valor       VARCHAR(200) NOT NULL,
     descricao   TEXT,
     icone       VARCHAR(100),
     cor         VARCHAR(20),
     link_url    TEXT,
-    posicao     INTEGER NOT NULL DEFAULT 0,
-    ativo       BOOLEAN NOT NULL DEFAULT TRUE,
-    criado_em   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    posicao     INT NOT NULL DEFAULT 0,
+    ativo       TINYINT(1) NOT NULL DEFAULT 1,
+    criado_em   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ============================================================
@@ -76,21 +76,21 @@ CREATE TABLE IF NOT EXISTS painel_transparencia (
 -- Legislação federal, municipal, decretos, portarias
 -- ============================================================
 CREATE TABLE IF NOT EXISTS legislacao (
-    id          BIGSERIAL PRIMARY KEY,
+    id          BIGINT PRIMARY KEY AUTO_INCREMENT,
     numero      VARCHAR(200) NOT NULL,
     titulo      VARCHAR(500) NOT NULL,
     descricao   TEXT,
     categoria   VARCHAR(100),
     tipo        VARCHAR(30) NOT NULL
                   CHECK (tipo IN ('Lei Federal','Lei Municipal','Decreto','Resolução','Portaria','Instrução Normativa','Emenda Constitucional')),
-    ano         INTEGER,
+    ano         INT,
     publicacao  DATE,
     link_url    TEXT,
     arquivo_url TEXT,
-    destaque    BOOLEAN NOT NULL DEFAULT FALSE,
-    ativo       BOOLEAN NOT NULL DEFAULT TRUE,
-    criado_em   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    destaque    TINYINT(1) NOT NULL DEFAULT 0,
+    ativo       TINYINT(1) NOT NULL DEFAULT 1,
+    criado_em   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_legislacao_tipo      ON legislacao (tipo);
@@ -99,14 +99,14 @@ CREATE INDEX IF NOT EXISTS idx_legislacao_ano       ON legislacao (ano);
 CREATE INDEX IF NOT EXISTS idx_legislacao_destaque  ON legislacao (destaque);
 
 -- Triggers
-CREATE TRIGGER trg_transp_docs_ts
-    BEFORE UPDATE ON transparencia_documentos
-    FOR EACH ROW EXECUTE FUNCTION atualizar_timestamp();
 
-CREATE TRIGGER trg_fin_docs_ts
-    BEFORE UPDATE ON financas_documentos
-    FOR EACH ROW EXECUTE FUNCTION atualizar_timestamp();
+    
+    
 
-CREATE TRIGGER trg_legislacao_ts
-    BEFORE UPDATE ON legislacao
-    FOR EACH ROW EXECUTE FUNCTION atualizar_timestamp();
+
+    
+    
+
+
+    
+    

@@ -1,4 +1,4 @@
-import { gestores as gestoresMock, Gestor } from "@/mocks/gestores";
+﻿import { gestores as gestoresMock, Gestor } from "@/mocks/gestores";
 
 export const GESTORES_STORAGE_KEY = "inprec_gestores";
 export const GESTORES_UPDATED_EVENT = "inprec-gestores-updated";

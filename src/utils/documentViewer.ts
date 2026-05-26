@@ -1,4 +1,4 @@
-export type DocumentKind = "pdf" | "presentation" | "drive" | "link" | "empty";
+﻿export type DocumentKind = "pdf" | "presentation" | "drive" | "link" | "empty";
 
 export type DocumentView = {
   kind: DocumentKind;

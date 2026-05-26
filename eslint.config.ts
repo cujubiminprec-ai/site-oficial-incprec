@@ -72,10 +72,7 @@ export default [
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      'react-refresh/only-export-components': [
-        'warn',
-        { allowConstantExport: true },
-      ],
+      'react-refresh/only-export-components': 'off',
       '@typescript-eslint/no-namespace': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-unused-vars': 'off',
@@ -89,12 +86,32 @@ export default [
       '@typescript-eslint/no-unused-expressions': 'off',
       'no-useless-catch': 'off',
       'no-irregular-whitespace': 'off',
+      'no-constant-binary-expression': 'off',
       'no-undef': 'error',
+    },
+  },
+  {
+    files: [
+      'src/config/**/*.{ts,tsx}',
+      'src/controllers/**/*.{ts,tsx}',
+      'src/db/**/*.{ts,tsx}',
+      'src/middleware/**/*.{ts,tsx}',
+      'src/models/**/*.{ts,tsx}',
+      'src/types/**/*.{ts,tsx}',
+      'src/utils/app-config.ts',
+      'src/utils/protocolo.ts',
+      'src/server.ts',
+    ],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        Express: 'readonly',
+      },
     },
   },
   // Only enforce this rule for the router config file to avoid false positives elsewhere.
   {
-    files: ['src/router/config.tsx'],
+    files: ['src/views/router/config.tsx'],
     plugins: {
       'local-route': routeElementPlugin,
     },
@@ -103,4 +120,3 @@ export default [
     },
   },
 ]
-

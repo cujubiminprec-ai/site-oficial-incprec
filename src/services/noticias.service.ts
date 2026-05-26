@@ -1,4 +1,4 @@
-import { apiFetch, getToken } from "./api";
+﻿import { apiFetch, getToken } from "./api";
 
 export interface Noticia {
   id: string;
@@ -18,6 +18,9 @@ export interface Noticia {
   visualizacoes: number;
   slug?: string;
   atualizado_em?: string;
+  publicada?: boolean;
+  publicado?: boolean;
+  [key: string]: any;
 }
 
 export interface NoticiaCreate {
@@ -31,6 +34,9 @@ export interface NoticiaCreate {
   destaque?: boolean;
   autor?: string;
   tags?: string[];
+  publicada?: boolean;
+  publicado?: boolean;
+  [key: string]: any;
 }
 
 export interface NoticiaUpdate extends Partial<NoticiaCreate> {

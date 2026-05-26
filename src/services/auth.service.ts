@@ -1,4 +1,4 @@
-import { apiFetch, getToken, setToken, setRefreshToken, removeToken, removeRefreshToken } from "./api";
+﻿import { apiFetch, getToken, setToken, setRefreshToken, removeToken, removeRefreshToken } from "./api";
 
 export interface LoginCredentials {
   email: string;
@@ -15,6 +15,10 @@ export interface LoginResponse {
     avatar?: string;
     nivelAcesso: string;
     permissoes: string[];
+    ativo?: boolean;
+    criadoEm?: string;
+    descricao?: string;
+    ultimoAcesso?: string;
   };
 }
 
@@ -64,6 +68,24 @@ export const authService = {
     }
     removeToken();
     removeRefreshToken();
+  },
+
+  async atualizarPerfil(payload: { nome: string; descricao?: string; avatar?: string }): Promise<LoginResponse["usuario"]> {
+    const token = getToken();
+    return apiFetch<LoginResponse["usuario"]>("/auth/perfil", {
+      method: "PUT",
+      body: payload,
+      token,
+    });
+  },
+
+  async alterarSenha(payload: { senhaAtual: string; novaSenha: string }): Promise<void> {
+    const token = getToken();
+    return apiFetch<void>("/auth/senha", {
+      method: "PUT",
+      body: payload,
+      token,
+    });
   },
 
   isAuthenticated(): boolean {

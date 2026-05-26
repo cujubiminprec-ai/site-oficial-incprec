@@ -1,4 +1,4 @@
-export type UploadArea = "slides" | "painel" | "transparencia" | "financas" | "gestores";
+﻿export type UploadArea = "slides" | "painel" | "transparencia" | "financas" | "gestores";
 
 export function extensaoArquivo(file: File | string) {
   const nome = typeof file === "string" ? file : file.name;

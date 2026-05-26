@@ -1,4 +1,4 @@
-import { SlideAdmin } from "@/mocks/slides-admin";
+﻿import { SlideAdmin } from "@/mocks/slides-admin";
 import { CursoItem } from "@/mocks/cursos-admin";
 import { apiFetch, getToken } from "./api";
 import { uploadService } from "./upload.service";
@@ -60,5 +60,12 @@ export const conteudoService = {
 
   salvarCursos(cursos: CursoItem[]) {
     return adminFetch<CursoItem[]>("/conteudo/cursos/bulk", { cursos });
+  },
+
+  inscreverCurso(cursoId: string | number, inscricao: Record<string, unknown>) {
+    return apiFetch(`/conteudo/cursos/${cursoId}/inscrever`, {
+      method: "POST",
+      body: inscricao,
+    });
   },
 };

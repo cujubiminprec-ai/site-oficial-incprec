@@ -1,58 +1,67 @@
-import { apiFetch, getToken } from "./api";
+﻿import { apiFetch, getToken } from "./api";
 
 export interface Gestor {
-  id: string;
+  id: number;
   nome: string;
   cargo: string;
+  grupo: "diretoria" | "comite" | "fiscal" | "deliberativo";
   periodo: string;
-  foto?: string;
+  foto: string;
   biografia?: string;
-  email?: string;
+  email: string;
   telefone?: string;
+  matricula?: string;
+  bio: string;
+  formacao: string;
+  cursos: CursoGestor[];
+  documentos: DocumentoGestor[];
+  mandato?: string;
   ativo: boolean;
   ordem: number;
   created_at?: string;
 }
 
 export interface CursoGestor {
-  id?: string;
-  gestor_id: string;
+  id: number;
+  gestor_id: number;
   titulo: string;
   instituicao: string;
-  ano: string;
+  ano: number;
   tipo: string;
+  cargaHoraria?: string;
 }
 
 export interface DocumentoGestor {
-  id?: string;
-  gestor_id: string;
+  id: number;
+  gestor_id: number;
   titulo: string;
   tipo: string;
+  tamanho?: string;
   url: string;
   data: string;
 }
 
 export const gestoresService = {
-  async listar(): Promise<Gestor[]> {
-    return apiFetch<Gestor[]>("/gestores");
+  async listar(_options?: Record<string, unknown>): Promise<any[]> {
+    return apiFetch<any[]>("/gestores");
   },
 
-  async obter(id: string): Promise<Gestor> {
-    return apiFetch<Gestor>(`/gestores/${id}`);
+  async obter(id: string): Promise<any> {
+    return apiFetch<any>(`/gestores/${id}`);
   },
 
-  async criar(gestor: Omit<Gestor, "id" | "created_at">): Promise<Gestor> {
+  async criar(gestor: any): Promise<any> {
     const token = getToken();
-    return apiFetch<Gestor>("/gestores", {
+    return apiFetch<any>("/gestores", {
       method: "POST",
       body: gestor,
       token,
     });
   },
 
-  async atualizar(id: string, gestor: Partial<Omit<Gestor, "id" | "created_at">>): Promise<Gestor> {
+  async atualizar(id: string | number, gestor: any): Promise<any> {
     const token = getToken();
-    return apiFetch<Gestor>(`/gestores/${id}`, {
+    return apiFetch<any>(`/gestores/${id}`, {
       method: "PUT",
       body: gestor,
       token,
