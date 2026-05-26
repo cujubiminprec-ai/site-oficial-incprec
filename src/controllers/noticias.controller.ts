@@ -96,7 +96,10 @@ router.post(
   exigirPermissao("noticias"),
   auditoria("criar", "noticias"),
   [
-    body("titulo").notEmpty().withMessage("Título obrigatório"),
+    body("titulo").trim().notEmpty().withMessage("Título da notícia obrigatório"),
+    body("categoria").trim().notEmpty().withMessage("Categoria obrigatória"),
+    body("image_url").trim().notEmpty().withMessage("Foto obrigatória"),
+    body("publicado").exists().withMessage("Status obrigatório").isBoolean().withMessage("Status inválido"),
     body("resumo").optional().isLength({ max: 500 }),
   ],
   async (req: AuthRequest, res: Response): Promise<void> => {
@@ -108,15 +111,18 @@ router.post(
 
     const { titulo, resumo, conteudo, image_url, image_alt, categoria, autor, destaque, publicado, tags } = req.body;
 
-    const slug = slugify(titulo, { lower: true, strict: true });
+    const tituloLimpo = String(titulo).trim();
+    const categoriaLimpa = String(categoria).trim();
+    const imageUrlLimpa = String(image_url).trim();
+    const slug = slugify(tituloLimpo, { lower: true, strict: true });
 
     try {
       const nova = await queryOne(
         `INSERT INTO noticias (titulo, slug, resumo, conteudo, image_url, image_alt, categoria, autor, destaque, publicado, publicado_em, tags)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
         [
-          titulo, slug, resumo ?? null, conteudo ?? null, image_url ?? null,
-          image_alt ?? null, categoria ?? null, autor ?? null,
+          tituloLimpo, slug, resumo ?? null, conteudo ?? null, imageUrlLimpa,
+          image_alt ?? null, categoriaLimpa, autor ?? null,
           destaque ?? false, publicado ?? false,
           publicado ? new Date() : null,
           tags ?? [],
@@ -125,7 +131,7 @@ router.post(
       res.status(201).json({ sucesso: true, dados: nova });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "";
-      if (msg.includes("unique")) {
+      if (msg.includes("unique") || msg.includes("Duplicate entry")) {
         res.status(409).json({ sucesso: false, mensagem: "Slug já existe. Escolha um título diferente." });
       } else {
         res.status(500).json({ sucesso: false, mensagem: "Erro ao criar notícia." });

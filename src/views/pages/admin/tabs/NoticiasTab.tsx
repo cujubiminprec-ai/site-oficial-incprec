@@ -30,13 +30,14 @@ function NoticiaFormModal({
   primaryColor,
 }: {
   noticia: Noticia;
-  onSave: (n: Noticia) => void;
+  onSave: (n: Noticia) => void | Promise<void>;
   onClose: () => void;
   primaryColor: string;
 }) {
   const [form, setForm] = useState<Noticia>({ ...noticia });
   const [tagInput, setTagInput] = useState("");
   const [activeSection, setActiveSection] = useState<"magic" | "manual">("magic");
+  const [erro, setErro] = useState("");
   const isNew = noticia.id === 0;
 
   const upd = (k: keyof Noticia, v: string | boolean | string[] | GalleryImage[]) =>
@@ -65,10 +66,26 @@ function NoticiaFormModal({
   const handleImagesChange = (imgs: GalleryImage[]) => {
     const cover = imgs.find((img) => img.isCover && img.ativo);
     upd("images", imgs);
-    if (cover) upd("image_url", cover.url);
+    upd("image_url", cover?.url || "");
   };
 
   const coverUrl = form.images?.find((img) => img.isCover && img.ativo)?.url || form.image_url;
+
+  const handleSubmit = async () => {
+    const faltando: string[] = [];
+    if (!coverUrl.trim()) faltando.push("foto");
+    if (!form.categoria.trim()) faltando.push("categoria");
+    if (!form.titulo.trim()) faltando.push("titulo da noticia");
+    if (typeof form.publicada !== "boolean") faltando.push("status");
+
+    if (faltando.length > 0) {
+      setErro("Preencha os campos obrigatorios: " + faltando.join(", ") + ".");
+      return;
+    }
+
+    setErro("");
+    await onSave({ ...form, image_url: coverUrl.trim(), titulo: form.titulo.trim(), categoria: form.categoria.trim() });
+  };
 
   return (
     <div
@@ -118,6 +135,7 @@ function NoticiaFormModal({
             <label className="text-xs font-bold text-gray-700 mb-2 flex items-center gap-1.5 block">
               <i className="ri-image-2-line" style={{ color: primaryColor }}></i>
               Imagens da Notícia
+              <span className="text-red-500 font-normal ml-1">*</span>
               <span className="text-gray-400 font-normal ml-1">— Escolha várias fotos e defina a capa</span>
             </label>
             <ImageGalleryUploader
@@ -131,7 +149,7 @@ function NoticiaFormModal({
           {/* Categoria + Status */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-semibold text-gray-600 mb-1.5 block">Categoria</label>
+              <label className="text-xs font-semibold text-gray-600 mb-1.5 block">Categoria <span className="text-red-500">*</span></label>
               <select
                 value={form.categoria}
                 onChange={(e) => upd("categoria", e.target.value)}
@@ -143,7 +161,7 @@ function NoticiaFormModal({
               </select>
             </div>
             <div>
-              <label className="text-xs font-semibold text-gray-600 mb-1.5 block">Status</label>
+              <label className="text-xs font-semibold text-gray-600 mb-1.5 block">Status <span className="text-red-500">*</span></label>
               <select
                 value={form.publicada === false ? "rascunho" : "publicada"}
                 onChange={(e) => upd("publicada", e.target.value === "publicada")}
@@ -159,6 +177,7 @@ function NoticiaFormModal({
           <div>
             <label className="text-xs font-semibold text-gray-600 mb-1.5 block">
               Título da Notícia
+              <span className="text-red-500 ml-1">*</span>
             </label>
             <input
               value={form.titulo}
@@ -287,6 +306,12 @@ function NoticiaFormModal({
             </div>
           )}
 
+          {erro && (
+            <div className="px-3 py-2 rounded-xl bg-red-50 border border-red-100 text-red-600 text-xs font-semibold">
+              {erro}
+            </div>
+          )}
+
           {/* Botões */}
           <div className="flex gap-3 pt-2">
             <button
@@ -296,7 +321,7 @@ function NoticiaFormModal({
               Cancelar
             </button>
             <button
-              onClick={() => onSave(form)}
+              onClick={() => void handleSubmit()}
               className="flex-1 py-3 rounded-xl text-sm font-semibold text-white cursor-pointer hover:opacity-90 whitespace-nowrap"
               style={{ backgroundColor: primaryColor }}
             >
