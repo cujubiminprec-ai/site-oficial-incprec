@@ -48,6 +48,11 @@ export const noticiasService = {
     return apiFetch<Noticia[]>("/noticias");
   },
 
+  async listarAdmin(): Promise<Noticia[]> {
+    const token = getToken();
+    return apiFetch<Noticia[]>("/noticias/admin", { token });
+  },
+
   async obter(id: string): Promise<Noticia> {
     return apiFetch<Noticia>(`/noticias/${id}`);
   },

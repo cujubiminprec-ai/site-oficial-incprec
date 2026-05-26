@@ -130,7 +130,7 @@ router.get("/painel/admin", autenticar, async (req: AuthRequest, res: Response):
 });
 
 // POST /api/transparencia/painel (admin)
-router.post("/painel", autenticar, exigirPermissao("transparencia"), auditoria("criar", "transparencia"), async (req: AuthRequest, res: Response): Promise<void> => {
+router.post("/painel", autenticar, exigirPermissao("painel"), auditoria("criar", "painel"), async (req: AuthRequest, res: Response): Promise<void> => {
   const { title, description, fileUrl, fileName, fileType, mimeType, slideImages, order, isActive } = req.body;
   try {
     const novo = await queryOne(
@@ -145,7 +145,7 @@ router.post("/painel", autenticar, exigirPermissao("transparencia"), auditoria("
 });
 
 // PUT /api/transparencia/painel/:id (admin)
-router.put("/painel/:id", autenticar, exigirPermissao("transparencia"), auditoria("atualizar", "transparencia"), async (req: AuthRequest, res: Response): Promise<void> => {
+router.put("/painel/:id", autenticar, exigirPermissao("painel"), auditoria("atualizar", "painel"), async (req: AuthRequest, res: Response): Promise<void> => {
   const id = parseInt(req.params.id, 10);
   const { title, description, fileUrl, fileName, fileType, mimeType, slideImages, order, isActive } = req.body;
   try {
@@ -166,7 +166,7 @@ router.put("/painel/:id", autenticar, exigirPermissao("transparencia"), auditori
 });
 
 // DELETE /api/transparencia/painel/:id (admin)
-router.delete("/painel/:id", autenticar, exigirPermissao("transparencia"), auditoria("excluir", "transparencia"), async (req: AuthRequest, res: Response): Promise<void> => {
+router.delete("/painel/:id", autenticar, exigirPermissao("painel"), auditoria("excluir", "painel"), async (req: AuthRequest, res: Response): Promise<void> => {
   const id = parseInt(req.params.id, 10);
   if (id >= 1 && id <= 6) {
     res.status(400).json({ sucesso: false, mensagem: "Os 6 painéis previdenciários obrigatórios não podem ser excluídos." });

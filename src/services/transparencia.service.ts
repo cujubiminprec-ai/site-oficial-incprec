@@ -139,7 +139,7 @@ export const transparenciaService = {
       sourceUrl: item.fileUrl || "",
       tipo: item.fileType as "PDF" | "PPT" | "LINK",
       tamanho: item.fileName || "",
-      ativo: item.isActive === 1,
+      ativo: item.isActive === 1 || item.isActive === true || item.isActive === "1",
       ordem: item.order,
       dataAtualizacao: item.updatedAt ? item.updatedAt.split(" ")[0] : "",
       slidesImg: Array.isArray(item.slideImages) ? item.slideImages : (typeof item.slideImages === "string" ? JSON.parse(item.slideImages) : [])
@@ -184,7 +184,7 @@ export const transparenciaService = {
       sourceUrl: item.fileUrl || "",
       tipo: item.fileType as "PDF" | "PPT" | "LINK",
       tamanho: item.fileName || "",
-      ativo: item.isActive === 1,
+      ativo: item.isActive === 1 || item.isActive === true || item.isActive === "1",
       ordem: item.order,
       dataAtualizacao: item.updatedAt ? item.updatedAt.split(" ")[0] : "",
       slidesImg: Array.isArray(item.slideImages) ? item.slideImages : (typeof item.slideImages === "string" ? JSON.parse(item.slideImages) : [])
@@ -219,7 +219,7 @@ export const transparenciaService = {
         sourceUrl: resp.fileUrl || "",
         tipo: resp.fileType,
         tamanho: resp.fileName,
-        ativo: resp.isActive === 1,
+        ativo: resp.isActive === 1 || resp.isActive === true || resp.isActive === "1",
         ordem: resp.order,
         dataAtualizacao: resp.updatedAt ? resp.updatedAt.split(" ")[0] : "",
         slidesImg: Array.isArray(resp.slideImages) ? resp.slideImages : (typeof resp.slideImages === "string" ? JSON.parse(resp.slideImages) : [])
@@ -238,7 +238,7 @@ export const transparenciaService = {
         sourceUrl: resp.fileUrl || "",
         tipo: resp.fileType,
         tamanho: resp.fileName,
-        ativo: resp.isActive === 1,
+        ativo: resp.isActive === 1 || resp.isActive === true || resp.isActive === "1",
         ordem: resp.order,
         dataAtualizacao: resp.updatedAt ? resp.updatedAt.split(" ")[0] : "",
         slidesImg: Array.isArray(resp.slideImages) ? resp.slideImages : (typeof resp.slideImages === "string" ? JSON.parse(resp.slideImages) : [])

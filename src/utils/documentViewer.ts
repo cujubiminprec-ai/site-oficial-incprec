@@ -37,15 +37,20 @@ function normalizeGoogleUrl(url: string, delay: number = 5000): string {
       }
       return url;
     }
-    const clean = url.split("?")[0].replace(/\/(edit|present|view).*$/i, "");
-    return `${clean}/embed?start=true&loop=true&delayms=${delay}`;
+    const match = url.match(/\/presentation\/d\/([^/]+)/i);
+    const presentationId = match?.[1];
+    return presentationId
+      ? `https://docs.google.com/presentation/d/${presentationId}/embed?start=true&loop=true&delayms=${delay}`
+      : url;
   }
 
   return url;
 }
 
-function isLocalUrl(url: string): boolean {
-  return /^\/uploads\//i.test(url) || /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/)/i.test(url);
+function publicAbsoluteUrl(url: string): string {
+  if (!/^\/uploads\//i.test(url)) return url;
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  return origin ? `${origin}${url}` : url;
 }
 
 function hasAnyExtension(url: string, extensions: string[]): boolean {
@@ -73,6 +78,7 @@ export function getDocumentView(rawUrl?: string, delay: number = 5000): Document
   const isDataPresentation = /^data:application\/(vnd\.ms-powerpoint|vnd\.openxmlformats-officedocument\.presentationml\.presentation|vnd\.oasis\.opendocument\.presentation)/i.test(sourceUrl);
   const isPdf = isDataPdf || /\.pdf($|\?)/i.test(sourceUrl) || /\.pdf($|\?)/i.test(normalized);
   const isPresentation = isDataPresentation || hasAnyExtension(sourceUrl, PRESENTATION_EXTENSIONS) || /docs\.google\.com\/presentation\//i.test(sourceUrl);
+  const presentationEmbedSource = publicAbsoluteUrl(sourceUrl);
 
   if (isGoogle) {
     return {
@@ -97,11 +103,11 @@ export function getDocumentView(rawUrl?: string, delay: number = 5000): Document
   }
 
   if (isPresentation) {
-    const canUseOfficeViewer = /^https?:\/\//i.test(sourceUrl) && !isLocalUrl(sourceUrl);
+    const canUseOfficeViewer = /^https?:\/\//i.test(presentationEmbedSource) && !/^https?:\/\/(localhost|127\.0\.0\.1)(:|\/)/i.test(presentationEmbedSource);
     return {
       kind: "presentation",
       sourceUrl,
-      embedUrl: canUseOfficeViewer ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(sourceUrl)}` : "",
+      embedUrl: canUseOfficeViewer ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(presentationEmbedSource)}` : "",
       canEmbed: canUseOfficeViewer,
       openLabel: "Abrir apresentacao",
       icon: "ri-slideshow-2-line",
@@ -123,6 +129,6 @@ export function inferDocumentType(url?: string): "PDF" | "PPT" | "LINK" {
   if (/^data:application\/pdf/i.test(sourceUrl)) return "PDF";
   if (/^data:application\/(vnd\.ms-powerpoint|vnd\.openxmlformats-officedocument\.presentationml\.presentation|vnd\.oasis\.opendocument\.presentation)/i.test(sourceUrl)) return "PPT";
   if (/\.pdf($|\?)/i.test(sourceUrl)) return "PDF";
-  if (hasAnyExtension(sourceUrl, PRESENTATION_EXTENSIONS) || /docs\.google\.com\/presentation\//i.test(sourceUrl)) return "PPT";
+  if (hasAnyExtension(sourceUrl, PRESENTATION_EXTENSIONS) || /docs\.google\.com\/presentation\//i.test(sourceUrl) || /drive\.google\.com\//i.test(sourceUrl)) return "PPT";
   return "LINK";
 }

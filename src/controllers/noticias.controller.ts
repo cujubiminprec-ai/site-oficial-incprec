@@ -51,6 +51,22 @@ router.get(
 );
 
 // ============================================================
+// GET /api/noticias/admin  (admin)
+// ============================================================
+router.get("/admin", autenticar, exigirPermissao("noticias"), async (_req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const result = await query(
+      `SELECT *
+       FROM noticias
+       ORDER BY COALESCE(publicado_em, criado_em) DESC, id DESC`
+    );
+    res.json({ sucesso: true, dados: result.rows });
+  } catch {
+    res.status(500).json({ sucesso: false, mensagem: "Erro ao buscar notícias para administração." });
+  }
+});
+
+// ============================================================
 // GET /api/noticias/:slug  (público)
 // ============================================================
 router.get("/:slug", async (req: Request, res: Response): Promise<void> => {

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useSiteConfig } from "@/contexts/SiteConfigContext";
 import { painelTransparenciaDefault, painelTransparenciaConfigDefault, PainelSlide } from "@/mocks/painel-transparencia";
 import { transparenciaService } from "@/services/transparencia.service";
+import { getDocumentView } from "@/utils/documentViewer";
 
 // ── DYNAMIC PDF.JS PAGE RENDER COMPONENT ──────────────────────────────────────────
 interface PDFCanvasViewerProps {
@@ -152,18 +153,6 @@ export function PDFCanvasViewer({ pdfUrl, currentPage, onLoadSuccess, className 
   );
 }
 
-// Helper to normalize Google Slides share/edit links into clean embed links
-function normalizeGoogleSlidesUrl(url: string): string {
-  if (!url) return "";
-  if (url.includes("/embed")) return url;
-  const match = url.match(/\/presentation\/d\/([a-zA-Z0-9-_]+)/);
-  if (match && match[1]) {
-    const presentationId = match[1];
-    return `https://docs.google.com/presentation/d/${presentationId}/embed?start=true&loop=true&delayms=5000`;
-  }
-  return url;
-}
-
 // ── MAIN SECTION COMPONENT ────────────────────────────────────────────────────────
 export default function PainelTransparenciaSection() {
   const { config } = useSiteConfig();
@@ -305,13 +294,13 @@ function TransparencyCard({
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const hasFile = !!slide.sourceUrl;
-  const isGoogleSlides = !!(slide.sourceUrl && slide.sourceUrl.includes("docs.google.com/presentation"));
-  const googleSlidesEmbedUrl = isGoogleSlides ? normalizeGoogleSlidesUrl(slide.sourceUrl!) : "";
-  const isPdf = !isGoogleSlides && (slide.tipo === "PDF" || (slide.sourceUrl && slide.sourceUrl.toLowerCase().endsWith(".pdf")));
-  const hasSlideImages = !isGoogleSlides && Array.isArray(slide.slidesImg) && slide.slidesImg.length > 0;
+  const documentView = getDocumentView(slide.sourceUrl, autoSlideDelay);
+  const isEmbeddedDocument = documentView.canEmbed && ["presentation", "drive", "link"].includes(documentView.kind);
+  const isPdf = documentView.kind === "pdf";
+  const hasSlideImages = !isEmbeddedDocument && Array.isArray(slide.slidesImg) && slide.slidesImg.length > 0;
 
   // Determine slide count
-  const totalSlides = isGoogleSlides ? 1 : (isPdf && numPages > 0 ? numPages : (hasSlideImages ? slide.slidesImg!.length : (hasFile ? 3 : 1)));
+  const totalSlides = isEmbeddedDocument ? 1 : (isPdf && numPages > 0 ? numPages : (hasSlideImages ? slide.slidesImg!.length : (hasFile ? 3 : 1)));
 
   // Auto progression every 5 seconds, pauses on hover
   useEffect(() => {
@@ -363,10 +352,10 @@ function TransparencyCard({
       );
     }
 
-    if (isGoogleSlides) {
+    if (isEmbeddedDocument) {
       return (
         <iframe
-          src={googleSlidesEmbedUrl}
+          src={documentView.embedUrl}
           className="w-full h-full border-0 bg-white"
           allowFullScreen
           title={slide.titulo}
@@ -483,9 +472,9 @@ function TransparencyCard({
       {/* 3. FOOTER MANUAL CONTROLS & NAV */}
       <div className="px-3 py-2 bg-gray-50 border-t border-gray-100 flex items-center justify-between z-10 select-none">
         {/* Navigation arrows and indicator */}
-        {isGoogleSlides ? (
+        {isEmbeddedDocument ? (
           <span className="text-[9px] font-extrabold text-[#1B5E20] bg-green-50 px-2.5 py-1 rounded-lg border border-green-100 uppercase tracking-wider flex items-center gap-1 shadow-3xs">
-            <i className="ri-slideshow-2-line text-[10px]"></i> Slide Integrado
+            <i className={`${documentView.icon} text-[10px]`}></i> Integrado
           </span>
         ) : (
           <div className="flex items-center gap-1.5">
@@ -522,16 +511,16 @@ function TransparencyCard({
               >
                 <i className="ri-fullscreen-line text-[10px]"></i> Ver
               </button>
-              {isGoogleSlides ? (
+              {isEmbeddedDocument ? (
                 <a
                   href={slide.sourceUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
                   className="px-3 py-1.5 rounded-lg border border-[#2E7D32] text-[#2E7D32] hover:bg-green-50 text-[9px] font-extrabold active:scale-95 transition-all cursor-pointer flex items-center gap-1 bg-white"
-                  title="Abrir no Google Slides"
+                  title={documentView.openLabel}
                 >
-                  <i className="ri-external-link-line text-[10px]"></i> Abrir
+                  <i className={`${documentView.icon} text-[10px]`}></i> Abrir
                 </a>
               ) : (
                 <a
@@ -563,15 +552,15 @@ function FullscreenDocumentViewer({
   onClose: () => void;
 }) {
   const hasFile = !!slide.sourceUrl;
-  const isGoogleSlides = !!(slide.sourceUrl && slide.sourceUrl.includes("docs.google.com/presentation"));
-  const googleSlidesEmbedUrl = isGoogleSlides ? normalizeGoogleSlidesUrl(slide.sourceUrl!) : "";
-  const isPdf = !isGoogleSlides && (slide.tipo === "PDF" || (slide.sourceUrl && slide.sourceUrl.toLowerCase().endsWith(".pdf")));
-  const hasSlideImages = !isGoogleSlides && Array.isArray(slide.slidesImg) && slide.slidesImg.length > 0;
+  const documentView = getDocumentView(slide.sourceUrl);
+  const isEmbeddedDocument = documentView.canEmbed && ["presentation", "drive", "link"].includes(documentView.kind);
+  const isPdf = documentView.kind === "pdf";
+  const hasSlideImages = !isEmbeddedDocument && Array.isArray(slide.slidesImg) && slide.slidesImg.length > 0;
 
   const [currentPage, setCurrentPage] = useState(0);
   const [numPages, setNumPages] = useState(0);
 
-  const totalSlides = isGoogleSlides ? 1 : (isPdf && numPages > 0 ? numPages : (hasSlideImages ? slide.slidesImg!.length : (hasFile ? 3 : 1)));
+  const totalSlides = isEmbeddedDocument ? 1 : (isPdf && numPages > 0 ? numPages : (hasSlideImages ? slide.slidesImg!.length : (hasFile ? 3 : 1)));
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -602,11 +591,11 @@ function FullscreenDocumentViewer({
       );
     }
 
-    if (isGoogleSlides) {
+    if (isEmbeddedDocument) {
       return (
         <div className="w-full h-full p-2 bg-gray-900">
           <iframe
-            src={googleSlidesEmbedUrl}
+            src={documentView.embedUrl}
             className="w-full h-full border-0 rounded-2xl shadow-2xl bg-white"
             allowFullScreen
             title={slide.titulo}
@@ -664,14 +653,14 @@ function FullscreenDocumentViewer({
 
         <div className="flex items-center gap-3">
           {slide.sourceUrl && (
-            isGoogleSlides ? (
+            isEmbeddedDocument ? (
               <a
                 href={slide.sourceUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-extrabold bg-white text-gray-900 hover:bg-gray-100 transition-all shadow-md active:scale-95"
               >
-                <i className="ri-external-link-line text-sm"></i> Abrir no Google
+                <i className={`${documentView.icon} text-sm`}></i> {documentView.openLabel}
               </a>
             ) : (
               <a

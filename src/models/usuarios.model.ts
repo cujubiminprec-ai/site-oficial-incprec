@@ -40,8 +40,8 @@ export const usuariosModel = {
     const senhaHash = await bcrypt.hash(String(payload.senha || "admin123"), 12);
     const id = uuidv4();
     await query(`
-      INSERT INTO usuarios_admin (id, nome, email, senha_hash, nivel_acesso, permissoes, ativo, descricao)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      INSERT INTO usuarios_admin (id, nome, email, senha_hash, nivel_acesso, permissoes, avatar_url, ativo, descricao)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
     `, [
       id,
       payload.nome,
@@ -49,6 +49,7 @@ export const usuariosModel = {
       senhaHash,
       payload.nivelAcesso ?? "operador",
       JSON.stringify(payload.permissoes ?? []),
+      payload.avatar ?? null,
       payload.ativo === false ? 0 : 1,
       payload.descricao ?? null
     ]);
@@ -63,14 +64,15 @@ export const usuariosModel = {
     const senhaHash = payload.senha ? await bcrypt.hash(String(payload.senha), 12) : atual.senha_hash;
     await query(`
       UPDATE usuarios_admin
-      SET nome = $1, email = $2, senha_hash = $3, nivel_acesso = $4, permissoes = $5, ativo = $6, descricao = $7, atualizado_em = NOW()
-      WHERE id = $8
+      SET nome = $1, email = $2, senha_hash = $3, nivel_acesso = $4, permissoes = $5, avatar_url = $6, ativo = $7, descricao = $8, atualizado_em = NOW()
+      WHERE id = $9
     `, [
       payload.nome ?? atual.nome,
       String(payload.email ?? atual.email).toLowerCase(),
       senhaHash,
       payload.nivelAcesso ?? atual.nivel_acesso,
       JSON.stringify(payload.permissoes ?? parsePermissoes(atual.permissoes)),
+      payload.avatar ?? atual.avatar_url,
       payload.ativo === false ? 0 : 1,
       payload.descricao ?? atual.descricao,
       id

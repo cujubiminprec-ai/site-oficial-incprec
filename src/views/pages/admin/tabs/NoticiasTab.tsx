@@ -312,14 +312,14 @@ function NoticiaFormModal({
 export default function NoticiasTab() {
   const { config } = useSiteConfig();
   const { promoteToSlide } = useSlidesAdmin();
-  const [lista, setLista] = useState<Noticia[]>(todasNoticias.map((n) => ({ ...n, publicada: true, images: [] })));
+  const [lista, setLista] = useState<Noticia[]>(todasNoticias.map((n) => ({ ...n, publicada: n.publicada !== false, images: [] })));
   const [editando, setEditando] = useState<Noticia | null>(null);
   const [busca, setBusca] = useState("");
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     let ativo = true;
-    noticiasService.listar()
+    noticiasService.listarAdmin()
       .then((listaApi) => {
         if (!ativo) return;
         if (listaApi.length > 0) {
@@ -335,7 +335,7 @@ export default function NoticiasTab() {
             autor: n.autor || "INPREC",
             tempoLeitura: "3 min",
             tags: Array.isArray(n.tags) ? n.tags : [],
-            publicada: true,
+            publicada: n.publicado !== false,
           })));
         }
       })
@@ -353,12 +353,13 @@ export default function NoticiasTab() {
   const handleTogglePublicada = async (id: number) => {
     const atual = lista.find((n) => n.id === id);
     if (!atual) return;
-    await noticiasService.atualizar(String(id), { publicada: !atual.publicada });
+    await noticiasService.atualizar(String(id), { publicado: !atual.publicada });
     persist(lista.map((n) => (n.id === id ? { ...n, publicada: !n.publicada } : n)));
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: number) => {
     if (!confirm("Excluir esta notícia permanentemente?")) return;
+    await noticiasService.deletar(String(id));
     persist(lista.filter((n) => n.id !== id));
   };
 
@@ -373,7 +374,7 @@ export default function NoticiasTab() {
         autor: n.autor,
         destaque: false,
         tags: n.tags,
-        publicada: n.publicada,
+        publicado: n.publicada,
       } as any);
       persist([{ ...n, id: Number(criada.id) }, ...lista]);
     } else {
@@ -385,7 +386,7 @@ export default function NoticiasTab() {
         categoria: n.categoria,
         autor: n.autor,
         tags: n.tags,
-        publicada: n.publicada,
+        publicado: n.publicada,
       } as any);
       persist(lista.map((x) => (x.id === n.id ? n : x)));
     }
