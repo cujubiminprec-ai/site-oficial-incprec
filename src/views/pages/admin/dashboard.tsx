@@ -2237,61 +2237,434 @@ function PainelTransparenciaTab() {
 
   const blankSlide: PainelSlide = { id: 0, titulo: "", embedUrl: "", sourceUrl: "", tipo: "PDF", tamanho: "", ativo: true, ordem: slides.length + 1, descricao: "", dataAtualizacao: new Date().toISOString().split("T")[0], slidesImg: [] };
 
+  const fileIcon = (tipo?: string) => {
+    if (tipo === "PPT") return { icon: "ri-slideshow-2-line", color: "text-orange-500", bg: "bg-orange-50" };
+    if (tipo === "PDF") return { icon: "ri-file-pdf-2-line", color: "text-red-500", bg: "bg-red-50" };
+    return { icon: "ri-link", color: "text-blue-500", bg: "bg-blue-50" };
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+
+      {/* ── HEADER ── */}
+      <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900" style={{ fontFamily: "'Poppins', sans-serif" }}>Painel de Transparencia</h1>
-          <p className="text-sm text-gray-400 mt-1">Todos os cards e configuracoes desta area agora ficam no MySQL.</p>
+          <h1 className="text-2xl font-bold text-gray-900" style={{ fontFamily: "'Poppins', sans-serif" }}>
+            Painel de Transparência
+          </h1>
+          <p className="text-sm text-gray-400 mt-0.5">
+            Gerencie os 6 cards exibidos na página inicial. Alterações são refletidas imediatamente no site.
+          </p>
         </div>
-        <button onClick={() => setEditSlide(blankSlide)} className="px-4 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: config.primaryColor }}>Novo Card</button>
+        <button
+          onClick={() => setEditSlide(blankSlide)}
+          className="flex-shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white shadow-sm hover:opacity-90 active:scale-95 transition-all"
+          style={{ backgroundColor: config.primaryColor }}
+        >
+          <i className="ri-add-line text-base"></i> Novo Card
+        </button>
       </div>
-      {saved && <div className="px-4 py-3 rounded-xl bg-green-50 border border-green-100 text-green-700 text-sm">Painel salvo com sucesso.</div>}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5 grid md:grid-cols-2 xl:grid-cols-5 gap-4">
-        <input value={painelConfig.titulo} onChange={(e) => setPainelConfig((prev) => ({ ...prev, titulo: e.target.value }))} className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm" placeholder="Titulo" />
-        <input value={painelConfig.subtitulo} onChange={(e) => setPainelConfig((prev) => ({ ...prev, subtitulo: e.target.value }))} className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm" placeholder="Subtitulo" />
-        <select value={painelConfig.columnsLayout || "2"} onChange={(e) => setPainelConfig((prev) => ({ ...prev, columnsLayout: e.target.value }))} className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="5">5</option><option value="auto">Auto</option></select>
-        <input type="number" value={painelConfig.cardHeight || 320} onChange={(e) => setPainelConfig((prev) => ({ ...prev, cardHeight: parseInt(e.target.value || "320", 10) }))} className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm" placeholder="Altura" />
-        <button onClick={() => void saveConfig()} className="py-2.5 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: config.primaryColor }}>Salvar Layout</button>
+
+      {/* ── SAVED TOAST ── */}
+      {saved && (
+        <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-green-50 border border-green-200 text-green-700 text-sm font-semibold">
+          <i className="ri-checkbox-circle-line text-base"></i> Alterações salvas e aplicadas no site com sucesso.
+        </div>
+      )}
+
+      {/* ── LAYOUT CONFIG ── */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2">
+          <i className="ri-layout-grid-line text-gray-400"></i>
+          <span className="text-sm font-bold text-gray-700">Configuração do Layout</span>
+          <span className="ml-auto text-[10px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full border border-gray-100">Salve para aplicar no site</span>
+        </div>
+        <div className="p-5 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Título da Seção</label>
+            <input
+              value={painelConfig.titulo}
+              onChange={(e) => setPainelConfig((prev) => ({ ...prev, titulo: e.target.value }))}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-300"
+              placeholder="Painel de Transparência"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Subtítulo</label>
+            <input
+              value={painelConfig.subtitulo}
+              onChange={(e) => setPainelConfig((prev) => ({ ...prev, subtitulo: e.target.value }))}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-300"
+              placeholder="Relatórios e documentos financeiros..."
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Colunas</label>
+              <select
+                value={painelConfig.columnsLayout || "2"}
+                onChange={(e) => setPainelConfig((prev) => ({ ...prev, columnsLayout: e.target.value }))}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-300"
+              >
+                <option value="1">1 coluna</option>
+                <option value="2">2 colunas</option>
+                <option value="3">3 colunas</option>
+                <option value="5">5 colunas</option>
+                <option value="auto">Automático</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Altura (px)</label>
+              <input
+                type="number"
+                value={painelConfig.cardHeight || 320}
+                onChange={(e) => setPainelConfig((prev) => ({ ...prev, cardHeight: parseInt(e.target.value || "320", 10) }))}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-300"
+              />
+            </div>
+          </div>
+          <div className="flex items-end">
+            <button
+              onClick={() => void saveConfig()}
+              className="w-full py-2.5 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 hover:opacity-90 active:scale-95 transition-all shadow-sm"
+              style={{ backgroundColor: config.primaryColor }}
+            >
+              <i className="ri-save-line"></i> Salvar Layout
+            </button>
+          </div>
+        </div>
       </div>
-      {loading ? <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center text-gray-500">Carregando painel...</div> : <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">{slides.map((slide) => (
-              <div key={slide.id} className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-gray-900 truncate">{slide.titulo}</p>
-                    <p className="text-xs text-gray-400">Ordem #{slide.ordem} · {slide.tipo || "PDF"}</p>
-                  </div>
-                  <span className={`text-xs px-2 py-1 rounded-full flex-shrink-0 ${slide.ativo ? "bg-green-50 text-green-600" : "bg-gray-100 text-gray-400"}`}>{slide.ativo ? "Ativo" : "Inativo"}</span>
-                </div>
-                <p className="text-xs text-gray-500 line-clamp-2">{slide.descricao || "Sem descricao informada."}</p>
-                <div className="text-[10px] font-semibold">
-                  {slide.sourceUrl
-                    ? <span className="text-green-700 bg-green-50 px-2 py-0.5 rounded-full inline-flex items-center gap-1"><i className="ri-attachment-2-line"></i> Arquivo anexado</span>
-                    : <span className="text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full inline-flex items-center gap-1"><i className="ri-file-warning-line"></i> Sem arquivo</span>
-                  }
-                </div>
-                <div className="flex gap-2 flex-wrap items-center">
-                  <label className="px-3 py-1.5 rounded-lg border border-blue-200 text-blue-700 bg-blue-50 text-xs font-semibold cursor-pointer flex items-center gap-1 hover:bg-blue-100 transition-colors">
-                    {quickUploadingId === slide.id ? <span>Enviando...</span> : <><i className="ri-upload-2-line"></i> Enviar PPTX</>}
-                    <input type="file" accept=".pdf,.ppt,.pptx,.pps,.ppsx" className="hidden" disabled={quickUploadingId !== null} onChange={(e) => { void handleQuickUpload(slide.id, e.target.files?.[0]); e.target.value = ""; }} />
-                  </label>
-                  {slide.sourceUrl && slide.tipo === "PPT" && (
-                    <button
-                      onClick={() => void handleConvertSlides(slide.id)}
-                      disabled={convertingId !== null}
-                      className="px-3 py-1.5 rounded-lg border border-purple-200 text-purple-700 bg-purple-50 text-xs font-semibold flex items-center gap-1 hover:bg-purple-100 disabled:opacity-50 transition-colors"
-                      title="Converte o PPTX em imagens para exibição no painel"
-                    >
-                      {convertingId === slide.id ? <><i className="ri-loader-4-line animate-spin"></i> Convertendo...</> : <><i className="ri-image-line"></i> Converter slides</>}
-                    </button>
+
+      {/* ── CARDS GRID ── */}
+      {loading ? (
+        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+          <div className="w-10 h-10 border-4 border-green-200 border-t-green-600 rounded-full animate-spin mx-auto mb-3"></div>
+          <p className="text-sm text-gray-400 font-medium">Carregando painéis...</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {slides.map((slide) => {
+            const { icon, color, bg } = fileIcon(slide.tipo);
+            const hasFile = !!slide.sourceUrl;
+            const slideCount = (slide.slidesImg || []).length;
+            const previewImg = slide.slidesImg?.[0];
+            const isFixedPanel = slide.id >= 1 && slide.id <= 6;
+            const isConverting = convertingId === slide.id;
+            const isUploading = quickUploadingId === slide.id;
+
+            return (
+              <div key={slide.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-shadow">
+
+                {/* Card thumbnail / preview */}
+                <div className="relative h-32 bg-gray-50 border-b border-gray-100 flex items-center justify-center overflow-hidden">
+                  {previewImg ? (
+                    <img src={previewImg} alt="Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className={`w-14 h-14 rounded-2xl ${bg} flex items-center justify-center`}>
+                      <i className={`${icon} text-2xl ${color}`}></i>
+                    </div>
                   )}
-                  <button onClick={() => void toggleSlide(slide)} className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold hover:bg-gray-50">{slide.ativo ? "Desativar" : "Ativar"}</button>
-                  <button onClick={() => setEditSlide(slide)} className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold hover:bg-gray-50">Editar</button>
-                  <button onClick={() => void removeSlide(slide.id)} className="px-3 py-1.5 rounded-lg border border-red-100 text-red-500 text-xs font-semibold hover:bg-red-50">Excluir</button>
+                  {/* Overlay badges */}
+                  <div className="absolute top-2 left-2 flex items-center gap-1.5">
+                    {isFixedPanel && (
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-black/50 text-white backdrop-blur-sm">
+                        #{slide.id} FIXO
+                      </span>
+                    )}
+                    {slideCount > 0 && (
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-black/50 text-white backdrop-blur-sm flex items-center gap-0.5">
+                        <i className="ri-image-line text-[9px]"></i> {slideCount} slides
+                      </span>
+                    )}
+                  </div>
+                  <div className="absolute top-2 right-2">
+                    <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full ${slide.ativo ? "bg-green-500 text-white" : "bg-gray-400 text-white"}`}>
+                      {slide.ativo ? "ATIVO" : "INATIVO"}
+                    </span>
+                  </div>
+                  {(isUploading || isConverting) && (
+                    <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center gap-1.5 backdrop-blur-sm">
+                      <i className="ri-loader-4-line text-xl text-green-600 animate-spin"></i>
+                      <span className="text-[10px] font-bold text-gray-600">{isConverting ? "Convertendo slides..." : "Enviando arquivo..."}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Card body */}
+                <div className="p-4 flex-1 flex flex-col gap-3">
+                  <div>
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="text-sm font-bold text-gray-900 leading-tight line-clamp-2">{slide.titulo}</h3>
+                      <span className={`flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${bg} ${color} border border-current/10`}>
+                        {slide.tipo || "—"}
+                      </span>
+                    </div>
+                    {slide.descricao && (
+                      <p className="text-[11px] text-gray-400 mt-1 line-clamp-2 leading-relaxed">{slide.descricao}</p>
+                    )}
+                  </div>
+
+                  {/* File status */}
+                  <div className="flex items-center gap-1.5">
+                    {hasFile ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-green-700 bg-green-50 px-2.5 py-1 rounded-full border border-green-100">
+                        <i className="ri-checkbox-circle-fill text-[10px]"></i>
+                        {slide.sourceUrl?.startsWith("http") ? "Link externo" : slide.sourceUrl?.split("/").pop()?.slice(0, 24) || "Arquivo salvo"}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-100">
+                        <i className="ri-error-warning-line text-[10px]"></i> Sem arquivo
+                      </span>
+                    )}
+                    {slide.dataAtualizacao && (
+                      <span className="text-[10px] text-gray-400 ml-auto">{slide.dataAtualizacao}</span>
+                    )}
+                  </div>
+
+                  {/* Action buttons */}
+                  <div className="flex flex-wrap gap-1.5 pt-1 border-t border-gray-50">
+                    <label className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 text-[11px] font-semibold cursor-pointer hover:bg-blue-100 transition-colors">
+                      {isUploading ? <><i className="ri-loader-4-line animate-spin text-[11px]"></i> Enviando</> : <><i className="ri-upload-cloud-2-line text-[11px]"></i> Enviar arquivo</>}
+                      <input type="file" accept=".pdf,.ppt,.pptx,.pps,.ppsx" className="hidden" disabled={quickUploadingId !== null || convertingId !== null} onChange={(e) => { void handleQuickUpload(slide.id, e.target.files?.[0]); e.target.value = ""; }} />
+                    </label>
+
+                    {hasFile && slide.tipo === "PPT" && (
+                      <button
+                        onClick={() => void handleConvertSlides(slide.id)}
+                        disabled={convertingId !== null || quickUploadingId !== null}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-purple-50 border border-purple-200 text-purple-700 text-[11px] font-semibold hover:bg-purple-100 disabled:opacity-40 transition-colors"
+                        title="Extrair imagens dos slides para exibição automática"
+                      >
+                        {isConverting ? <><i className="ri-loader-4-line animate-spin text-[11px]"></i> Convertendo</> : <><i className="ri-image-2-line text-[11px]"></i> Converter slides</>}
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => setEditSlide(slide)}
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-gray-50 border border-gray-200 text-gray-600 text-[11px] font-semibold hover:bg-gray-100 transition-colors"
+                    >
+                      <i className="ri-pencil-line text-[11px]"></i> Editar
+                    </button>
+
+                    <button
+                      onClick={() => void toggleSlide(slide)}
+                      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${slide.ativo ? "bg-red-50 border-red-200 text-red-600 hover:bg-red-100" : "bg-green-50 border-green-200 text-green-600 hover:bg-green-100"}`}
+                    >
+                      <i className={`text-[11px] ${slide.ativo ? "ri-eye-off-line" : "ri-eye-line"}`}></i>
+                      {slide.ativo ? "Ocultar" : "Exibir"}
+                    </button>
+
+                    {!isFixedPanel && (
+                      <button
+                        onClick={() => void removeSlide(slide.id)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-50 border border-red-100 text-red-500 text-[11px] font-semibold hover:bg-red-100 transition-colors"
+                      >
+                        <i className="ri-delete-bin-6-line text-[11px]"></i> Excluir
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
-            ))}</div>}
-      {editSlide && <div className="fixed inset-0 z-[60] bg-black/40 flex items-center justify-center p-4"><div className="w-full max-w-3xl bg-white rounded-3xl border border-gray-100 overflow-hidden"><div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between"><h2 className="text-lg font-bold text-gray-900">{editSlide.id === 0 ? "Novo Card" : "Editar Card"}</h2><button onClick={() => setEditSlide(null)} className="w-9 h-9 rounded-xl hover:bg-gray-100"><i className="ri-close-line"></i></button></div><div className="p-6 grid md:grid-cols-2 gap-4 max-h-[80vh] overflow-auto"><div className="space-y-4"><input value={editSlide.titulo} onChange={(e) => setEditSlide((prev) => prev ? { ...prev, titulo: e.target.value } : prev)} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" placeholder="Titulo" /><textarea value={editSlide.descricao || ""} onChange={(e) => setEditSlide((prev) => prev ? { ...prev, descricao: e.target.value } : prev)} rows={3} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm resize-none" placeholder="Descricao" /><div className="grid grid-cols-2 gap-4"><select value={editSlide.tipo || "PDF"} onChange={(e) => setEditSlide((prev) => prev ? { ...prev, tipo: e.target.value as PainelSlide["tipo"] } : prev)} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white"><option value="PPT">PPTX</option><option value="PDF">PDF</option><option value="LINK">LINK</option></select><input type="number" value={editSlide.ordem} onChange={(e) => setEditSlide((prev) => prev ? { ...prev, ordem: parseInt(e.target.value || "1", 10) } : prev)} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" /></div><label className="flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" checked={editSlide.ativo} onChange={(e) => setEditSlide((prev) => prev ? { ...prev, ativo: e.target.checked } : prev)} /> Exibir no site</label></div><div className="space-y-4"><div className="rounded-2xl border-2 border-dashed border-blue-200 bg-blue-50/40 p-4 space-y-3"><div className="flex items-center gap-2 mb-1"><i className="ri-slideshow-2-line text-blue-600 text-base"></i><span className="text-xs font-bold text-blue-700 uppercase tracking-wide">Enviar Apresentação PPTX ou PDF</span></div><input ref={painelFileInputRef} type="file" accept=".pptx,.ppt,.ppsx,.pps,.pdf" className="hidden" onChange={(e) => void handlePainelFileUpload(e.target.files?.[0])} /><button onClick={() => painelFileInputRef.current?.click()} disabled={uploadingPainel} className="w-full px-4 py-3 rounded-xl border-2 border-blue-300 bg-white text-blue-700 text-sm font-bold flex items-center justify-center gap-2 hover:bg-blue-50 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-60">{uploadingPainel ? <><i className="ri-loader-4-line animate-spin"></i> Enviando...</> : <><i className="ri-upload-cloud-2-line text-base"></i> Escolher arquivo PPTX / PDF</>}</button><p className="text-[10px] text-blue-400 text-center">Aceita: .pptx · .ppt · .ppsx · .pdf</p>{editSlide.sourceUrl && !editSlide.sourceUrl.startsWith("http") && <p className="text-xs text-gray-500 break-all bg-white rounded-lg px-2 py-1 border border-gray-100">Arquivo atual: <strong>{editSlide.sourceUrl.split("/").pop()}</strong></p>}{uploadPainelInfo && <p className="text-xs text-green-700 font-semibold flex items-center gap-1"><i className="ri-check-line"></i>{uploadPainelInfo}</p>}{uploadPainelErro && <p className="text-xs text-red-500 flex items-center gap-1"><i className="ri-error-warning-line"></i>{uploadPainelErro}</p>}</div><div className="rounded-2xl border border-dashed border-gray-200 p-4 space-y-2"><div className="flex items-center gap-2"><i className="ri-google-line text-gray-400 text-sm"></i><label className="text-xs font-bold text-gray-500">Ou cole um link do Google Slides / Drive</label></div><input type="url" value={editSlide.sourceUrl?.startsWith("http") ? editSlide.sourceUrl : ""} onChange={(e) => { const url = e.target.value; setEditSlide((prev) => prev ? { ...prev, sourceUrl: url, embedUrl: url, tipo: inferDocumentType(url) as PainelSlide["tipo"], tamanho: url ? "Link externo" : prev.tamanho, dataAtualizacao: new Date().toISOString().split("T")[0] } : prev); }} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" placeholder="https://docs.google.com/presentation/d/..." /><p className="text-[11px] text-gray-400 leading-relaxed">Links do Google Slides ficam incorporados no painel. <strong>Se preferir PPTX, use o campo acima.</strong></p></div><div className="rounded-2xl border border-dashed border-gray-200 p-4"><input ref={slidesImagesInputRef} type="file" multiple accept="image/*" className="hidden" onChange={(e) => void handleMultipleSlidesUpload(e.target.files)} /><button onClick={() => slidesImagesInputRef.current?.click()} className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm font-semibold">{uploadingSlides ? "Enviando imagens..." : "Adicionar imagens dos slides"}</button>{uploadSlidesErro && <p className="mt-2 text-xs text-red-500">{uploadSlidesErro}</p>}<div className="mt-3 grid grid-cols-3 gap-2">{(editSlide.slidesImg || []).map((img, index) => <div key={img + index} className="relative rounded-xl overflow-hidden border border-gray-100"><img src={img} alt={`Slide ${index + 1}`} className="w-full h-20 object-cover" /><button onClick={() => setEditSlide((prev) => prev ? { ...prev, slidesImg: (prev.slidesImg || []).filter((_, idx) => idx !== index) } : prev)} className="absolute top-1 right-1 w-6 h-6 rounded-full bg-white/90 text-red-500"><i className="ri-close-line"></i></button></div>)}</div></div></div></div><div className="px-6 py-4 border-t border-gray-100 flex gap-3"><button onClick={() => setEditSlide(null)} className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600">Cancelar</button><button onClick={() => void saveSlide()} className="flex-1 py-3 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: config.primaryColor }}>Salvar Card</button></div></div></div>}
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── EDIT MODAL ── */}
+      {editSlide && (
+        <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+
+            {/* Modal header */}
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">{editSlide.id === 0 ? "Novo Card" : "Editar Card"}</h2>
+                <p className="text-xs text-gray-400 mt-0.5">Preencha as informações e envie o arquivo de apresentação.</p>
+              </div>
+              <button onClick={() => setEditSlide(null)} className="w-9 h-9 rounded-xl hover:bg-gray-100 flex items-center justify-center text-gray-500 transition-colors">
+                <i className="ri-close-line text-lg"></i>
+              </button>
+            </div>
+
+            {/* Modal body */}
+            <div className="overflow-y-auto flex-1 p-6 space-y-5">
+
+              {/* Basic info */}
+              <div className="space-y-3">
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Informações do Card</p>
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-gray-600">Título <span className="text-red-400">*</span></label>
+                    <input
+                      value={editSlide.titulo}
+                      onChange={(e) => setEditSlide((prev) => prev ? { ...prev, titulo: e.target.value } : prev)}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-300"
+                      placeholder="Ex: Avaliação Atuarial 2026"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-gray-600">Descrição</label>
+                    <textarea
+                      value={editSlide.descricao || ""}
+                      onChange={(e) => setEditSlide((prev) => prev ? { ...prev, descricao: e.target.value } : prev)}
+                      rows={2}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-300"
+                      placeholder="Breve descrição do conteúdo..."
+                    />
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-gray-600">Tipo</label>
+                      <select
+                        value={editSlide.tipo || "PDF"}
+                        onChange={(e) => setEditSlide((prev) => prev ? { ...prev, tipo: e.target.value as PainelSlide["tipo"] } : prev)}
+                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-300"
+                      >
+                        <option value="PPT">PPTX</option>
+                        <option value="PDF">PDF</option>
+                        <option value="LINK">Link</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-gray-600">Ordem</label>
+                      <input
+                        type="number"
+                        value={editSlide.ordem}
+                        onChange={(e) => setEditSlide((prev) => prev ? { ...prev, ordem: parseInt(e.target.value || "1", 10) } : prev)}
+                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-300"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-gray-600">Visibilidade</label>
+                      <button
+                        type="button"
+                        onClick={() => setEditSlide((prev) => prev ? { ...prev, ativo: !prev.ativo } : prev)}
+                        className={`w-full py-2.5 rounded-xl text-xs font-bold border transition-colors flex items-center justify-center gap-1.5 ${editSlide.ativo ? "bg-green-50 border-green-200 text-green-700" : "bg-gray-50 border-gray-200 text-gray-500"}`}
+                      >
+                        <i className={editSlide.ativo ? "ri-eye-line" : "ri-eye-off-line"}></i>
+                        {editSlide.ativo ? "Visível" : "Oculto"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* File upload */}
+              <div className="space-y-3">
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Arquivo da Apresentação</p>
+
+                <div className="rounded-2xl border-2 border-dashed border-blue-200 bg-gradient-to-br from-blue-50/60 to-white p-5 space-y-3">
+                  <input ref={painelFileInputRef} type="file" accept=".pptx,.ppt,.ppsx,.pps,.pdf" className="hidden" onChange={(e) => void handlePainelFileUpload(e.target.files?.[0])} />
+                  <button
+                    onClick={() => painelFileInputRef.current?.click()}
+                    disabled={uploadingPainel}
+                    className="w-full px-4 py-3.5 rounded-xl border-2 border-blue-300 bg-white text-blue-700 text-sm font-bold flex items-center justify-center gap-2 hover:bg-blue-50 active:scale-[0.98] transition-all disabled:opacity-60 shadow-sm"
+                  >
+                    {uploadingPainel
+                      ? <><i className="ri-loader-4-line animate-spin text-base"></i> Enviando arquivo...</>
+                      : <><i className="ri-upload-cloud-2-line text-lg"></i> Clique para selecionar PDF ou PPTX</>
+                    }
+                  </button>
+                  <p className="text-center text-[10px] text-blue-400 font-medium">Aceita: .pdf · .pptx · .ppt · .ppsx</p>
+
+                  {editSlide.sourceUrl && !editSlide.sourceUrl.startsWith("http") && (
+                    <div className="flex items-center gap-2 bg-white rounded-xl px-3 py-2 border border-green-200">
+                      <i className="ri-checkbox-circle-fill text-green-500 text-sm flex-shrink-0"></i>
+                      <span className="text-xs text-gray-600 truncate"><strong>Arquivo:</strong> {editSlide.sourceUrl.split("/").pop()}</span>
+                    </div>
+                  )}
+                  {uploadPainelInfo && (
+                    <div className="flex items-center gap-1.5 text-xs text-green-700 font-semibold bg-green-50 rounded-xl px-3 py-2 border border-green-100">
+                      <i className="ri-check-line"></i> {uploadPainelInfo}
+                    </div>
+                  )}
+                  {uploadPainelErro && (
+                    <div className="flex items-center gap-1.5 text-xs text-red-600 font-semibold bg-red-50 rounded-xl px-3 py-2 border border-red-100">
+                      <i className="ri-error-warning-line"></i> {uploadPainelErro}
+                    </div>
+                  )}
+                </div>
+
+                {/* Google Slides alternative */}
+                <div className="rounded-2xl border border-gray-200 bg-gray-50/50 p-4 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <i className="ri-google-line text-gray-400 text-sm"></i>
+                    <label className="text-xs font-bold text-gray-500">Ou cole um link do Google Slides</label>
+                  </div>
+                  <input
+                    type="url"
+                    value={editSlide.sourceUrl?.startsWith("http") ? editSlide.sourceUrl : ""}
+                    onChange={(e) => {
+                      const url = e.target.value;
+                      setEditSlide((prev) => prev ? { ...prev, sourceUrl: url, embedUrl: url, tipo: inferDocumentType(url) as PainelSlide["tipo"], tamanho: url ? "Link externo" : prev.tamanho, dataAtualizacao: new Date().toISOString().split("T")[0] } : prev);
+                    }}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-300"
+                    placeholder="https://docs.google.com/presentation/d/..."
+                  />
+                  <p className="text-[10px] text-gray-400">Google Slides incorporados ficam integrados no painel. <strong>Para PPTX, use o campo acima.</strong></p>
+                </div>
+              </div>
+
+              {/* Slide images preview */}
+              {(editSlide.slidesImg || []).length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
+                      Slides Convertidos <span className="text-gray-300 font-normal normal-case">({editSlide.slidesImg!.length} imagens)</span>
+                    </p>
+                    <button
+                      onClick={() => setEditSlide((prev) => prev ? { ...prev, slidesImg: [] } : prev)}
+                      className="text-[10px] text-red-500 hover:text-red-700 font-semibold flex items-center gap-1"
+                    >
+                      <i className="ri-delete-bin-6-line"></i> Limpar todos
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2">
+                    {(editSlide.slidesImg || []).slice(0, 8).map((img, index) => (
+                      <div key={img + index} className="relative rounded-xl overflow-hidden border border-gray-100 aspect-video group">
+                        <img src={img} alt={`Slide ${index + 1}`} className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                          <button
+                            onClick={() => setEditSlide((prev) => prev ? { ...prev, slidesImg: (prev.slidesImg || []).filter((_, idx) => idx !== index) } : prev)}
+                            className="opacity-0 group-hover:opacity-100 w-6 h-6 rounded-full bg-white/90 text-red-500 flex items-center justify-center transition-opacity"
+                          >
+                            <i className="ri-close-line text-xs"></i>
+                          </button>
+                        </div>
+                        <span className="absolute bottom-1 left-1 text-[8px] font-bold bg-black/50 text-white px-1 rounded">
+                          {index + 1}
+                        </span>
+                      </div>
+                    ))}
+                    {(editSlide.slidesImg || []).length > 8 && (
+                      <div className="rounded-xl border border-gray-100 aspect-video bg-gray-50 flex items-center justify-center">
+                        <span className="text-xs font-bold text-gray-400">+{editSlide.slidesImg!.length - 8}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal footer */}
+            <div className="px-6 py-4 border-t border-gray-100 flex gap-3 flex-shrink-0 bg-gray-50/50">
+              <button
+                onClick={() => setEditSlide(null)}
+                className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => void saveSlide()}
+                className="flex-1 py-3 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.99] transition-all shadow-sm"
+                style={{ backgroundColor: config.primaryColor }}
+              >
+                <i className="ri-save-line"></i> Salvar e Publicar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
