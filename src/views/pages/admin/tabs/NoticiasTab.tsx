@@ -242,12 +242,12 @@ function NoticiaFormModal({
             <textarea
               value={form.conteudo}
               onChange={(e) => upd("conteudo", e.target.value)}
-              rows={7}
-              maxLength={500}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none resize-none"
+              rows={12}
+              maxLength={5000}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none resize-y"
               placeholder="Texto completo da notícia..."
             />
-            <p className="text-xs text-gray-400 text-right">{form.conteudo.length}/500</p>
+            <p className="text-xs text-gray-400 text-right">{form.conteudo.length}/5000</p>
           </div>
 
           {/* Autor + Data + Leitura */}
