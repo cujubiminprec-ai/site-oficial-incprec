@@ -297,11 +297,12 @@ function TransparencyCard({
 
   const hasFile = !!slide.sourceUrl;
   const documentView = getDocumentView(slide.sourceUrl, autoSlideDelay);
-  const isEmbeddedDocument = !iframeError && documentView.canEmbed && ["presentation", "drive", "link"].includes(documentView.kind);
-  const isPdf = documentView.kind === "pdf";
-  const hasSlideImages = !isEmbeddedDocument && Array.isArray(slide.slidesImg) && slide.slidesImg.length > 0;
+  // Prefer converted slide images over any iframe embed
+  const hasSlideImages = Array.isArray(slide.slidesImg) && slide.slidesImg.length > 0;
+  const isEmbeddedDocument = !hasSlideImages && !iframeError && documentView.canEmbed && ["presentation", "drive", "link"].includes(documentView.kind);
+  const isPdf = !hasSlideImages && documentView.kind === "pdf";
 
-  // PPTX uploaded locally that can't embed: download card
+  // PPTX uploaded locally that can't embed and has no images: download card
   const isPptxLocal = hasFile && !isEmbeddedDocument && !isPdf && !hasSlideImages;
 
   // Determine slide count
@@ -567,9 +568,9 @@ function FullscreenDocumentViewer({
 }) {
   const hasFile = !!slide.sourceUrl;
   const documentView = getDocumentView(slide.sourceUrl);
-  const isEmbeddedDocument = documentView.canEmbed && ["presentation", "drive", "link"].includes(documentView.kind);
-  const isPdf = documentView.kind === "pdf";
-  const hasSlideImages = !isEmbeddedDocument && Array.isArray(slide.slidesImg) && slide.slidesImg.length > 0;
+  const hasSlideImages = Array.isArray(slide.slidesImg) && slide.slidesImg.length > 0;
+  const isEmbeddedDocument = !hasSlideImages && documentView.canEmbed && ["presentation", "drive", "link"].includes(documentView.kind);
+  const isPdf = !hasSlideImages && documentView.kind === "pdf";
 
   const [currentPage, setCurrentPage] = useState(0);
   const [numPages, setNumPages] = useState(0);
