@@ -1,4 +1,4 @@
-﻿const API_URL = import.meta.env.VITE_API_URL || "/api";
+const API_URL = import.meta.env.VITE_API_URL || "/api";
 
 interface ApiOptions {
   method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
@@ -18,26 +18,50 @@ export class ApiError extends Error {
   }
 }
 
-export async function apiFetch<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
+async function refreshAccessToken(): Promise<string | null> {
+  const refreshToken = localStorage.getItem("inprec_api_refresh_token");
+  if (!refreshToken) return null;
+
+  try {
+    const response = await fetch(API_URL + "/auth/refresh", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken }),
+    });
+
+    if (!response.ok) return null;
+    const data = await response.json();
+    const dados = data?.dados ?? data;
+    if (!dados?.token) return null;
+
+    setToken(dados.token);
+    if (dados.refreshToken) setRefreshToken(dados.refreshToken);
+    return dados.token as string;
+  } catch {
+    return null;
+  }
+}
+
+async function executeFetch(endpoint: string, options: ApiOptions, overrideToken?: string | null): Promise<Response> {
   const { method = "GET", body, headers = {}, token } = options;
-
-  const url = `${API_URL}${endpoint}`;
-
   const defaultHeaders: Record<string, string> = {
     "Content-Type": "application/json",
     ...headers,
   };
 
-  if (token) {
-    defaultHeaders["Authorization"] = `Bearer ${token}`;
+  const authToken = overrideToken !== undefined ? overrideToken : token;
+  if (authToken) {
+    defaultHeaders["Authorization"] = "Bearer " + authToken;
   }
 
-  const response = await fetch(url, {
+  return fetch(API_URL + endpoint, {
     method,
     headers: defaultHeaders,
     body: body ? JSON.stringify(body) : undefined,
   });
+}
 
+async function parseResponse<T>(response: Response): Promise<T> {
   let data: unknown;
   const contentType = response.headers.get("content-type");
   if (contentType && contentType.includes("application/json")) {
@@ -52,11 +76,10 @@ export async function apiFetch<T>(endpoint: string, options: ApiOptions = {}): P
         ? String((data as { mensagem: string }).mensagem)
         : typeof data === "object" && data !== null && "message" in data
         ? String((data as { message: string }).message)
-        : `Erro ${response.status}`;
+        : "Erro " + response.status;
     throw new ApiError(message, response.status, data);
   }
 
-  // Backend retorna { sucesso: true, dados: T } — extrai .dados automaticamente
   if (
     typeof data === "object" &&
     data !== null &&
@@ -67,6 +90,19 @@ export async function apiFetch<T>(endpoint: string, options: ApiOptions = {}): P
   }
 
   return data as T;
+}
+
+export async function apiFetch<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
+  let response = await executeFetch(endpoint, options);
+
+  if (response.status === 401 && options.token && endpoint !== "/auth/refresh") {
+    const newToken = await refreshAccessToken();
+    if (newToken) {
+      response = await executeFetch(endpoint, options, newToken);
+    }
+  }
+
+  return parseResponse<T>(response);
 }
 
 export function getToken(): string | null {

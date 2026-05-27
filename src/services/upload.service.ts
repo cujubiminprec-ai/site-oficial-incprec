@@ -38,6 +38,34 @@ function normalizarUploadResponse(data: UploadResponse): UploadResponse {
   };
 }
 
+async function refreshUploadToken(): Promise<string | null> {
+  const refreshToken = localStorage.getItem("inprec_api_refresh_token");
+  if (!refreshToken) return null;
+
+  try {
+    const response = await fetch(apiBaseUrl() + "/auth/refresh", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken }),
+    });
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    const dados = data?.dados ?? data;
+    if (!dados?.token) return null;
+
+    setToken(dados.token);
+    if (dados.refreshToken) setRefreshToken(dados.refreshToken);
+    return dados.token as string;
+  } catch {
+    return null;
+  }
+}
+
+function authHeader(token: string | null) {
+  return token ? { Authorization: "Bearer " + token } : {};
+}
+
 function uploadErrorMessage(error: unknown) {
   if (error instanceof TypeError) {
     return `Backend de uploads indisponível em ${apiPublicLabel()}. Inicie a API local e tente novamente.`;
@@ -76,7 +104,7 @@ export const uploadService = {
   },
 
   async upload(file: File, pasta: string): Promise<UploadResponse> {
-    const token = await this.ensureToken();
+    let token = await this.ensureToken();
     const formData = new FormData();
     formData.append("arquivo", file);
 
@@ -85,13 +113,22 @@ export const uploadService = {
     try {
       response = await fetch(`${API_URL}/upload?pasta=${encodeURIComponent(pasta)}`, {
         method: "POST",
-        headers: {
-          Authorization: token ? `Bearer ${token}` : "",
-        },
+        headers: authHeader(token),
         body: formData,
       });
     } catch (err) {
       throw new Error(uploadErrorMessage(err));
+    }
+
+    if (response.status === 401) {
+      token = await refreshUploadToken();
+      if (token) {
+        response = await fetch(`${API_URL}/upload?pasta=${encodeURIComponent(pasta)}`, {
+          method: "POST",
+          headers: authHeader(token),
+          body: formData,
+        });
+      }
     }
 
     if (!response.ok) {
@@ -105,7 +142,7 @@ export const uploadService = {
   },
 
   async uploadMultiplo(files: File[], pasta: string): Promise<UploadResponse[]> {
-    const token = await this.ensureToken();
+    let token = await this.ensureToken();
     const formData = new FormData();
     files.forEach((file) => formData.append("arquivos", file));
 
@@ -114,13 +151,22 @@ export const uploadService = {
     try {
       response = await fetch(`${API_URL}/upload/multiplo?pasta=${encodeURIComponent(pasta)}`, {
         method: "POST",
-        headers: {
-          Authorization: token ? `Bearer ${token}` : "",
-        },
+        headers: authHeader(token),
         body: formData,
       });
     } catch (err) {
       throw new Error(uploadErrorMessage(err));
+    }
+
+    if (response.status === 401) {
+      token = await refreshUploadToken();
+      if (token) {
+        response = await fetch(`${API_URL}/upload/multiplo?pasta=${encodeURIComponent(pasta)}`, {
+          method: "POST",
+          headers: authHeader(token),
+          body: formData,
+        });
+      }
     }
 
     if (!response.ok) {
