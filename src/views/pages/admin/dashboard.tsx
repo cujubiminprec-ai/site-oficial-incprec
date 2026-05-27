@@ -2052,6 +2052,7 @@ function PainelTransparenciaTab() {
   const [uploadSlidesErro, setUploadSlidesErro] = useState("");
   const slidesImagesInputRef = useRef<HTMLInputElement | null>(null);
   const [quickUploadingId, setQuickUploadingId] = useState<number | null>(null);
+  const [convertingId, setConvertingId] = useState<number | null>(null);
 
   useEffect(() => {
     let ativo = true;
@@ -2194,10 +2195,42 @@ function PainelTransparenciaTab() {
       window.dispatchEvent(new Event("inprec-painel-transparencia-updated"));
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
+
+      // Auto-convert if PPTX
+      const isPptx = /\.(pptx?|ppsx?|odp)$/i.test(file.name);
+      if (isPptx && salvo.id) {
+        setConvertingId(salvo.id);
+        try {
+          const result = await transparenciaService.convertSlides(salvo.id);
+          setSlides((prev) => prev.map((s) => s.id === salvo.id ? { ...s, slidesImg: result.slideImages } : s));
+          window.dispatchEvent(new Event("inprec-painel-transparencia-updated"));
+        } catch {
+          // Conversion failed silently — user can retry via "Converter slides" button
+        } finally {
+          setConvertingId(null);
+        }
+      }
     } catch (err) {
       alert(err instanceof Error ? err.message : "Erro no upload.");
     } finally {
       setQuickUploadingId(null);
+    }
+  };
+
+  const handleConvertSlides = async (slideId: number) => {
+    if (!confirm("Converter o PPTX em imagens de slides? Isso pode levar até 2 minutos.")) return;
+    setConvertingId(slideId);
+    try {
+      const result = await transparenciaService.convertSlides(slideId);
+      setSlides((prev) => prev.map((s) => s.id === slideId ? { ...s, slidesImg: result.slideImages } : s));
+      window.dispatchEvent(new Event("inprec-painel-transparencia-updated"));
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+      alert(`${result.slideCount} slides convertidos com sucesso.`);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Erro na conversao de slides.");
+    } finally {
+      setConvertingId(null);
     }
   };
 
@@ -2241,6 +2274,16 @@ function PainelTransparenciaTab() {
                     {quickUploadingId === slide.id ? <span>Enviando...</span> : <><i className="ri-upload-2-line"></i> Enviar PPTX</>}
                     <input type="file" accept=".pdf,.ppt,.pptx,.pps,.ppsx" className="hidden" disabled={quickUploadingId !== null} onChange={(e) => { void handleQuickUpload(slide.id, e.target.files?.[0]); e.target.value = ""; }} />
                   </label>
+                  {slide.sourceUrl && slide.tipo === "PPT" && (
+                    <button
+                      onClick={() => void handleConvertSlides(slide.id)}
+                      disabled={convertingId !== null}
+                      className="px-3 py-1.5 rounded-lg border border-purple-200 text-purple-700 bg-purple-50 text-xs font-semibold flex items-center gap-1 hover:bg-purple-100 disabled:opacity-50 transition-colors"
+                      title="Converte o PPTX em imagens para exibição no painel"
+                    >
+                      {convertingId === slide.id ? <><i className="ri-loader-4-line animate-spin"></i> Convertendo...</> : <><i className="ri-image-line"></i> Converter slides</>}
+                    </button>
+                  )}
                   <button onClick={() => void toggleSlide(slide)} className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold hover:bg-gray-50">{slide.ativo ? "Desativar" : "Ativar"}</button>
                   <button onClick={() => setEditSlide(slide)} className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold hover:bg-gray-50">Editar</button>
                   <button onClick={() => void removeSlide(slide.id)} className="px-3 py-1.5 rounded-lg border border-red-100 text-red-500 text-xs font-semibold hover:bg-red-50">Excluir</button>

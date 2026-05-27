@@ -238,7 +238,20 @@ export const transparenciaService = {
       method: "DELETE",
       token
     });
-  }
+  },
+
+  async convertSlides(id: number): Promise<{ painel: PainelSlide; slideImages: string[]; slideCount: number }> {
+    const token = getToken();
+    const resp = await apiFetch<any>(`/transparencia/painel/${id}/convert-slides`, {
+      method: "POST",
+      token,
+    });
+    return {
+      painel: painelSlideFromApi(resp),
+      slideImages: Array.isArray(resp.slide_images) ? resp.slide_images : [],
+      slideCount: Number(resp.slide_count ?? 0),
+    };
+  },
 };
 
 

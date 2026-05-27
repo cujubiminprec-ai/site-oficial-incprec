@@ -1,8 +1,12 @@
 ﻿import { Router, Request, Response } from "express";
+import { execFile } from "child_process";
+import path from "path";
+import fs from "fs";
 import { query, queryOne } from "../config/database";
 import { autenticar, exigirPermissao } from "../middleware/auth";
 import { auditoria } from "../middleware/audit";
 import { AuthRequest } from "../types";
+import env from "../config/env";
 
 const router = Router();
 
@@ -162,6 +166,77 @@ router.put("/painel/:id", autenticar, exigirPermissao("painel"), auditoria("atua
     res.json({ sucesso: true, dados: atualizado });
   } catch (err) {
     res.status(500).json({ sucesso: false, mensagem: "Erro ao atualizar card de transparência." });
+  }
+});
+
+// POST /api/transparencia/painel/:id/convert-slides (admin)
+// Runs the Python PPTX-to-images script and persists the resulting slideImages.
+router.post("/painel/:id/convert-slides", autenticar, async (req: AuthRequest, res: Response): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  try {
+    const panel = await queryOne<{ id: number; fileUrl: string; title: string }>(
+      `SELECT id, fileUrl, title FROM transparency_panel WHERE id = $1`,
+      [id]
+    );
+    if (!panel) {
+      res.status(404).json({ sucesso: false, mensagem: "Painel não encontrado." });
+      return;
+    }
+    const fileUrl: string = panel.fileUrl || "";
+    if (!fileUrl) {
+      res.status(400).json({ sucesso: false, mensagem: "Nenhum arquivo associado a este painel." });
+      return;
+    }
+
+    // Resolve disk path from URL (/uploads/... → UPLOAD_PATH/...)
+    const relativePath = fileUrl.replace(/^\/uploads\//i, "");
+    const diskPath = path.resolve(env.upload.path, relativePath);
+
+    if (!fs.existsSync(diskPath)) {
+      res.status(400).json({ sucesso: false, mensagem: `Arquivo não encontrado no disco: ${relativePath}` });
+      return;
+    }
+
+    const ext = path.extname(diskPath).toLowerCase();
+    const isPptx = [".ppt", ".pptx", ".pps", ".ppsx", ".odp"].includes(ext);
+    if (!isPptx) {
+      res.status(400).json({ sucesso: false, mensagem: "Conversão disponível apenas para arquivos PPTX/PPT/ODP." });
+      return;
+    }
+
+    const outDir = path.resolve(env.upload.path, "slide-previews");
+    fs.mkdirSync(outDir, { recursive: true });
+
+    const prefix = `painel_${id}_${Date.now()}`;
+    const scriptPath = path.resolve(process.cwd(), "scripts/pptx_to_slides.py");
+
+    await new Promise<void>((resolve, reject) => {
+      execFile("python3", [scriptPath, diskPath, outDir, prefix], { timeout: 120_000 }, (error, stdout, stderr) => {
+        if (error) {
+          reject(new Error(stderr || error.message));
+          return;
+        }
+        try {
+          const result = JSON.parse(stdout.trim()) as { success: boolean; slide_images: string[]; error?: string };
+          if (!result.success) { reject(new Error(result.error || "Conversão falhou")); return; }
+
+          // Persist slideImages and update the panel record
+          queryOne(
+            `UPDATE transparency_panel SET slideImages = $1, updatedAt = datetime('now') WHERE id = $2 RETURNING *`,
+            [JSON.stringify(result.slide_images), id]
+          ).then((updated) => {
+            if (!updated) { reject(new Error("Painel não encontrado ao persistir.")); return; }
+            res.json({ sucesso: true, dados: updated, slide_images: result.slide_images, slide_count: result.slide_images.length });
+            resolve();
+          }).catch(reject);
+        } catch {
+          reject(new Error("Resposta inválida do script Python."));
+        }
+      });
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Erro na conversão de slides.";
+    res.status(500).json({ sucesso: false, mensagem: msg });
   }
 });
 
