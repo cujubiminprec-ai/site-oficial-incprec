@@ -27,6 +27,7 @@ import contatoController from './contato.controller';
 import ouvidoriaController from './ouvidoria.controller';
 import laiController from './lai.controller';
 import analyticsController from './analytics.controller';
+import chatController from './chat.controller';
 import notificacoesController from './notificacoes.controller';
 
 const router = Router();
@@ -53,6 +54,7 @@ router.use('/contato', contatoController);
 router.use('/ouvidoria', ouvidoriaController);
 router.use('/lai', laiController);
 router.use('/analytics', analyticsController);
+router.use('/chat', chatController);
 router.use('/notificacoes', notificacoesController);
 
 export default router;

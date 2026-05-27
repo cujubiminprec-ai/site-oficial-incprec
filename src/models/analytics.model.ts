@@ -34,7 +34,7 @@ export const analyticsModel = {
     `) ?? { total: 0, page_views: 0, clicks: 0 };
 
     const paginas = (await query(`
-      SELECT path, COALESCE(page_name, path) AS pageName,
+      SELECT path, COALESCE(page_name, path) AS name, COALESCE(page_name, path) AS pageName,
         SUM(CASE WHEN tipo = 'page_view' THEN 1 ELSE 0 END) AS visits,
         SUM(CASE WHEN tipo = 'click' THEN 1 ELSE 0 END) AS clicks
       FROM analytics_eventos
@@ -44,10 +44,13 @@ export const analyticsModel = {
     `)).rows;
 
     const meses = (await query(`
-      SELECT DATE_FORMAT(criado_em, '%Y-%m') AS mes, COUNT(*) AS total
+      SELECT DATE_FORMAT(criado_em, '%Y-%m') AS mes,
+        SUM(CASE WHEN tipo = 'page_view' THEN 1 ELSE 0 END) AS visitas,
+        SUM(CASE WHEN tipo = 'click' THEN 1 ELSE 0 END) AS cliques,
+        COUNT(*) AS total
       FROM analytics_eventos
       GROUP BY DATE_FORMAT(criado_em, '%Y-%m')
-      ORDER BY mes DESC
+      ORDER BY mes ASC
       LIMIT 12
     `)).rows;
 

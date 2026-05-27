@@ -3,6 +3,7 @@ import { useSiteConfig } from "@/contexts/SiteConfigContext";
 import { floatingButtonsDefault, FloatingButtonConfig } from "@/mocks/floating-buttons";
 import { configuracoesService } from "@/services/configuracoes.service";
 import { useAccessibility } from "@/contexts/AccessibilityContext";
+import { chatService } from "@/services/chat.service";
 
 interface Message {
   from: "user" | "bot";
@@ -86,21 +87,43 @@ function ChatWidget({ onClose, primaryColor }: { onClose: () => void; primaryCol
   const [inputText, setInputText] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [sessionId, setSessionId] = useState(() => localStorage.getItem("inprec_chat_session") || "");
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
-  const sendMessage = (text: string) => {
+  useEffect(() => {
+    let active = true;
+    chatService.iniciar(sessionId || undefined).then((data) => {
+      if (!active || !data.sessionId) return;
+      setSessionId(data.sessionId);
+      localStorage.setItem("inprec_chat_session", data.sessionId);
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, []);
+
+  const sendMessage = async (text: string) => {
     if (!text.trim()) return;
+    const clean = text.trim();
     setInputText("");
-    setMessages((prev) => [...prev, { from: "user", text: text.trim() }]);
+    setMessages((prev) => [...prev, { from: "user", text: clean }]);
     setIsTyping(true);
-    setTimeout(() => {
-      const response = getBotResponse(text);
-      setIsTyping(false);
+    try {
+      const sid = sessionId || localStorage.getItem("inprec_chat_session") || undefined;
+      const started = sid ? { sessionId: sid } : await chatService.iniciar();
+      if (started.sessionId) {
+        setSessionId(started.sessionId);
+        localStorage.setItem("inprec_chat_session", started.sessionId);
+      }
+      const saved = await chatService.enviar(started.sessionId!, clean);
+      setMessages((prev) => [...prev, { from: "bot", text: saved.resposta?.mensagem || getBotResponse(clean).answer, options: getBotResponse(clean).options }]);
+    } catch {
+      const response = getBotResponse(clean);
       setMessages((prev) => [...prev, { from: "bot", text: response.answer, options: response.options }]);
-    }, 900);
+    } finally {
+      setIsTyping(false);
+    }
   };
 
   return (
@@ -141,7 +164,7 @@ function ChatWidget({ onClose, primaryColor }: { onClose: () => void; primaryCol
             {msg.from === "bot" && msg.options && i === messages.length - 1 && (
               <div className="flex flex-wrap gap-1.5 mt-2 ml-8">
                 {msg.options.map((opt) => (
-                  <button key={opt} onClick={() => sendMessage(opt)}
+                  <button key={opt} onClick={() => void sendMessage(opt)}
                     className="text-[11px] px-2.5 py-1 rounded-full border border-gray-200 bg-white text-gray-600 hover:border-gray-400 transition-all cursor-pointer whitespace-nowrap">
                     {opt}
                   </button>
@@ -169,10 +192,10 @@ function ChatWidget({ onClose, primaryColor }: { onClose: () => void; primaryCol
       </div>
       <div className="px-3 py-3 border-t border-gray-100 bg-white flex items-center gap-2 flex-shrink-0">
         <input type="text" value={inputText} onChange={(e) => setInputText(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && sendMessage(inputText)}
+          onKeyDown={(e) => e.key === "Enter" && void sendMessage(inputText)}
           placeholder="Pergunte sobre previdência..."
           className="flex-1 text-xs bg-gray-50 rounded-full px-4 py-2.5 focus:outline-none border border-gray-200 focus:border-gray-300 focus:bg-white transition-all" />
-        <button onClick={() => sendMessage(inputText)}
+        <button onClick={() => void sendMessage(inputText)}
           className="w-9 h-9 flex items-center justify-center rounded-full text-white cursor-pointer hover:scale-105 transition-all flex-shrink-0"
           style={{ backgroundColor: primaryColor }}>
           <i className="ri-send-plane-fill text-sm"></i>
