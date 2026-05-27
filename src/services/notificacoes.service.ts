@@ -1,8 +1,8 @@
-import { apiFetch } from "./api";
+import { apiFetch, getToken } from "./api";
 
 export const notificacoesService = {
   listar() {
-    return apiFetch<Record<string, unknown>[]>("/notificacoes");
+    return apiFetch<Record<string, unknown>[]>("/notificacoes", { token: getToken() });
   },
   marcarLida(id: number | string) {
     return apiFetch(`/notificacoes/${id}/lida`, { method: "PATCH" });
