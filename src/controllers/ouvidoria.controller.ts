@@ -195,4 +195,20 @@ router.patch("/:id/status", autenticar, exigirPermissao("ouvidoria-admin"), asyn
   }
 });
 
+// ============================================================
+// DELETE /api/ouvidoria/:id  (admin)
+// ============================================================
+router.delete("/:id", autenticar, exigirPermissao("ouvidoria-admin"), auditoria("excluir", "ouvidoria"), async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const result = await query("DELETE FROM ouvidoria_mensagens WHERE id = ?", [req.params.id]);
+    if (result.rowCount === 0) {
+      res.status(404).json({ sucesso: false, mensagem: "Manifestação não encontrada." });
+      return;
+    }
+    res.json({ sucesso: true, mensagem: "Manifestação excluída com sucesso." });
+  } catch {
+    res.status(500).json({ sucesso: false, mensagem: "Erro ao excluir manifestação." });
+  }
+});
+
 export default router;

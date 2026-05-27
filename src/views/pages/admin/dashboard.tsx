@@ -32,6 +32,7 @@ import VotacaoAdminTab from "@/pages/admin/tabs/VotacaoAdminTab";
 import PerfilTab from "@/pages/admin/tabs/PerfilTab";
 import GerenciadorArquivosTab from "@/pages/admin/tabs/GerenciadorArquivosTab";
 import AtendimentoAdminTab from "@/pages/admin/tabs/AtendimentoAdminTab";
+import ProtocolosAtendimentoTab from "@/pages/admin/tabs/ProtocolosAtendimentoTab";
 import NotificacoesDrawer from "@/components/feature/NotificacoesDrawer";
 import { useNotificacoes } from "@/contexts/NotificacoesContext";
 import { ApiError } from "@/services/api";
@@ -2378,8 +2379,8 @@ export default function AdminDashboardPage() {
     eleicao: <EleicaoAdminTab />,
     votacao: <VotacaoAdminTab />,
     "eventos-inscritos": <EventosInscritosTab />,
-    "ouvidoria-admin": <AtendimentoTab tipo="ouvidoria" />,
-    "lai-admin": <AtendimentoTab tipo="lai" />,
+    "ouvidoria-admin": <ProtocolosAtendimentoTab tipo="ouvidoria" />,
+    "lai-admin": <ProtocolosAtendimentoTab tipo="lai" />,
     "contato-admin": <AtendimentoAdminTab tipo="contato" />,
     "pesquisa-admin": <AtendimentoAdminTab tipo="pesquisa" />,
     "formularios-admin": <AtendimentoAdminTab tipo="formularios" />,

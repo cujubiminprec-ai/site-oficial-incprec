@@ -124,6 +124,20 @@ router.get("/", autenticar, exigirPermissao("lai-admin"), async (req: Request, r
   }
 });
 
+
+// ============================================================
+// GET /api/lai/:id  (admin)
+// ============================================================
+router.get("/:id", autenticar, exigirPermissao("lai-admin"), async (req: Request, res: Response): Promise<void> => {
+  try {
+    const item = await queryOne("SELECT * FROM lai_pedidos WHERE id = ?", [req.params.id]);
+    if (!item) { res.status(404).json({ sucesso: false, mensagem: "Pedido LAI não encontrado." }); return; }
+    res.json({ sucesso: true, dados: item });
+  } catch {
+    res.status(500).json({ sucesso: false, mensagem: "Erro ao buscar pedido LAI." });
+  }
+});
+
 // ============================================================
 // PATCH /api/lai/:id/responder  (admin)
 // ============================================================
@@ -171,6 +185,22 @@ router.patch("/:id/status", autenticar, exigirPermissao("lai-admin"), async (req
     res.json({ sucesso: true, mensagem: "Status atualizado." });
   } catch {
     res.status(500).json({ sucesso: false, mensagem: "Erro ao atualizar status." });
+  }
+});
+
+// ============================================================
+// DELETE /api/lai/:id  (admin)
+// ============================================================
+router.delete("/:id", autenticar, exigirPermissao("lai-admin"), auditoria("excluir", "lai"), async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const result = await query("DELETE FROM lai_pedidos WHERE id = ?", [req.params.id]);
+    if (result.rowCount === 0) {
+      res.status(404).json({ sucesso: false, mensagem: "Pedido LAI não encontrado." });
+      return;
+    }
+    res.json({ sucesso: true, mensagem: "Pedido LAI excluído com sucesso." });
+  } catch {
+    res.status(500).json({ sucesso: false, mensagem: "Erro ao excluir pedido LAI." });
   }
 });
 

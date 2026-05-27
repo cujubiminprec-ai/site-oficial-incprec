@@ -49,11 +49,27 @@ export const laiService = {
     return apiFetch<PedidoLAI[]>("/lai", { token: getToken() });
   },
 
-  async responder(id: string, resposta: string): Promise<PedidoLAI> {
+  async detalhar(id: string | number): Promise<PedidoLAI> {
+    return apiFetch<PedidoLAI>(`/lai/${id}`, { token: getToken() });
+  },
+
+  async responder(id: string | number, resposta: string, status = "respondido"): Promise<PedidoLAI> {
     return apiFetch<PedidoLAI>(`/lai/${id}/responder`, {
       method: "PATCH",
-      body: { resposta },
+      body: { resposta, status },
       token: getToken(),
     });
+  },
+
+  async atualizarStatus(id: string | number, status: string): Promise<void> {
+    return apiFetch<void>(`/lai/${id}/status`, {
+      method: "PATCH",
+      body: { status },
+      token: getToken(),
+    });
+  },
+
+  async excluir(id: string | number): Promise<void> {
+    return apiFetch<void>(`/lai/${id}`, { method: "DELETE", token: getToken() });
   },
 };

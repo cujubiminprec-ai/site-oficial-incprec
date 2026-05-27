@@ -43,11 +43,27 @@ export const ouvidoriaService = {
     return apiFetch<Manifestacao[]>("/ouvidoria", { token: getToken() });
   },
 
-  async responder(id: string, resposta: string): Promise<Manifestacao> {
+  async detalhar(id: string | number): Promise<Manifestacao> {
+    return apiFetch<Manifestacao>(`/ouvidoria/${id}`, { token: getToken() });
+  },
+
+  async responder(id: string | number, resposta: string, status = "respondida"): Promise<Manifestacao> {
     return apiFetch<Manifestacao>(`/ouvidoria/${id}/responder`, {
       method: "PATCH",
-      body: { resposta },
+      body: { resposta, status },
       token: getToken(),
     });
+  },
+
+  async atualizarStatus(id: string | number, status: string): Promise<void> {
+    return apiFetch<void>(`/ouvidoria/${id}/status`, {
+      method: "PATCH",
+      body: { status },
+      token: getToken(),
+    });
+  },
+
+  async excluir(id: string | number): Promise<void> {
+    return apiFetch<void>(`/ouvidoria/${id}`, { method: "DELETE", token: getToken() });
   },
 };
