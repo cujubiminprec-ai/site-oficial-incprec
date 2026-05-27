@@ -360,7 +360,7 @@ function NoticiaFormModal({
 export default function NoticiasTab() {
   const { config } = useSiteConfig();
   const { promoteToSlide } = useSlidesAdmin();
-  const [lista, setLista] = useState<Noticia[]>(todasNoticias.map((n) => ({ ...n, publicada: n.publicada !== false, images: [] })));
+  const [lista, setLista] = useState<Noticia[]>([]);
   const [editando, setEditando] = useState<Noticia | null>(null);
   const [busca, setBusca] = useState("");
   const [saved, setSaved] = useState(false);
@@ -370,8 +370,7 @@ export default function NoticiasTab() {
     noticiasService.listarAdmin()
       .then((listaApi) => {
         if (!ativo) return;
-        if (listaApi.length > 0) {
-          setLista(listaApi.map((n: any) => ({
+        setLista(listaApi.map((n: any) => ({
             id: Number(n.id),
             categoria: n.categoria || "Institucional",
             titulo: n.titulo || "",
@@ -385,9 +384,8 @@ export default function NoticiasTab() {
             tags: Array.isArray(n.tags) ? n.tags : [],
             publicada: n.publicado !== false,
           })));
-        }
       })
-      .catch(() => {});
+      .catch(() => setLista([]));
     return () => { ativo = false; };
   }, []);
 

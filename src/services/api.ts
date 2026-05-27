@@ -46,6 +46,8 @@ async function executeFetch(endpoint: string, options: ApiOptions, overrideToken
   const { method = "GET", body, headers = {}, token } = options;
   const defaultHeaders: Record<string, string> = {
     "Content-Type": "application/json",
+    "Cache-Control": "no-cache",
+    Pragma: "no-cache",
     ...headers,
   };
 
@@ -58,6 +60,7 @@ async function executeFetch(endpoint: string, options: ApiOptions, overrideToken
     method,
     headers: defaultHeaders,
     body: body ? JSON.stringify(body) : undefined,
+    cache: "no-store",
   });
 }
 
