@@ -46,8 +46,14 @@ export interface NoticiaUpdate extends Partial<NoticiaCreate> {
 }
 
 export const noticiasService = {
-  async listar(): Promise<Noticia[]> {
-    return apiFetch<Noticia[]>("/noticias");
+  async listar(params?: { pagina?: number; limite?: number; categoria?: string; busca?: string }): Promise<Noticia[]> {
+    const query = new URLSearchParams();
+    if (params?.pagina) query.set("pagina", String(params.pagina));
+    if (params?.limite) query.set("limite", String(params.limite));
+    if (params?.categoria) query.set("categoria", params.categoria);
+    if (params?.busca) query.set("busca", params.busca);
+    const suffix = query.toString() ? "?" + query.toString() : "";
+    return apiFetch<Noticia[]>("/noticias" + suffix);
   },
 
   async listarAdmin(): Promise<Noticia[]> {

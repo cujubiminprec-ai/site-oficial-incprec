@@ -1,8 +1,6 @@
 import { useParams, Link } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import PageLayout from "@/components/feature/PageLayout";
-import { useSiteConfig } from "@/contexts/SiteConfigContext";
-import { useScrollAnimation, animClass } from "@/hooks/useScrollAnimation";
 import { todasNoticias as noticiasMock } from "@/mocks/noticias-extra";
 import { noticiasService, Noticia as ApiNoticia } from "@/services/noticias.service";
 
@@ -16,12 +14,13 @@ type PublicNoticia = {
   image_url: string;
   criado_em: string;
   autor: string;
-  tempoLeitura: string;
   tags: string[];
   images?: { id: string; url: string; isCover?: boolean; ativo?: boolean }[];
   documentos?: { label: string; url: string }[];
   publicada?: boolean;
 };
+
+const PLACEHOLDER = "/uploads/noticias/placeholder.jpg";
 
 function getTodasNoticiasLocal(): PublicNoticia[] {
   return noticiasMock.map((n: typeof noticiasMock[0]) => ({ ...n, publicada: true, images: n.images || [] }));
@@ -36,40 +35,89 @@ function ordenarNoticiasRecentes<T extends { criado_em?: string; publicado_em?: 
 }
 
 function normalizarNoticiaApi(n: ApiNoticia): PublicNoticia {
+  const imageUrl = n.image_url || n.imagem || PLACEHOLDER;
   return {
     id: n.id,
     slug: n.slug,
-    categoria: n.categoria || "Noticia",
+    categoria: n.categoria || "Notícias",
     titulo: n.titulo,
     resumo: n.resumo || "",
     conteudo: n.conteudo || n.resumo || "",
-    image_url: n.image_url || n.imagem || "/uploads/noticias/placeholder.jpg",
+    image_url: imageUrl,
     criado_em: n.publicado_em || n.criado_em || n.data || new Date().toISOString(),
     autor: n.autor || "INPREC",
-    tempoLeitura: "3 min",
     tags: Array.isArray(n.tags) ? n.tags : [],
-    images: Array.isArray(n.images) ? n.images : (n.image_url ? [{ id: `noticia-${n.id}`, url: n.image_url, isCover: true, ativo: true }] : []),
+    images: Array.isArray(n.images) ? n.images : [{ id: `noticia-${n.id}`, url: imageUrl, isCover: true, ativo: true }],
     documentos: [],
     publicada: true,
   };
 }
 
+function dataLonga(data: string): string {
+  const parsed = new Date(data);
+  if (Number.isNaN(parsed.getTime())) return "";
+  return parsed.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
+}
+
+function normalizarConteudo(conteudo: string): string[] {
+  return conteudo
+    .replace(/\r\n/g, "\n")
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+}
+
+function ArticleContent({ conteudo }: { conteudo: string }) {
+  const partes = normalizarConteudo(conteudo);
+  return (
+    <div className="space-y-4 text-[15px] leading-7 text-gray-700">
+      {partes.map((parte, index) => {
+        if (parte.startsWith("**") && parte.endsWith("**")) {
+          return (
+            <h2 key={index} className="pt-2 text-xl font-bold text-gray-900" style={{ fontFamily: "'Poppins', sans-serif" }}>
+              {parte.replace(/\*\*/g, "")}
+            </h2>
+          );
+        }
+        if (parte.includes("\n- ") || parte.startsWith("- ")) {
+          return (
+            <ul key={index} className="list-disc pl-6 space-y-1">
+              {parte.split("\n").map((item, itemIndex) => (
+                <li key={itemIndex}>{item.replace(/^-\s*/, "")}</li>
+              ))}
+            </ul>
+          );
+        }
+        return <p key={index}>{parte}</p>;
+      })}
+    </div>
+  );
+}
+
 export default function NoticiaDetalhePage() {
   const { id } = useParams();
-  const { config } = useSiteConfig();
-  const { ref, isVisible } = useScrollAnimation({ threshold: 0.05 });
   const [todasNoticias, setTodasNoticias] = useState<PublicNoticia[]>([]);
   const [noticiaApi, setNoticiaApi] = useState<PublicNoticia | null>(null);
+  const [copiado, setCopiado] = useState(false);
+
   const noticiaLocal = todasNoticias.find((n) => String(n.id) === String(id) || n.slug === id);
   const noticia = noticiaApi || noticiaLocal;
-  const relacionadas = ordenarNoticiasRecentes(todasNoticias).filter((n) => String(n.id) !== String(noticia?.id)).slice(0, 3);
-  const galeria = noticia?.images?.filter((img: { ativo?: boolean }) => img.ativo !== false) || [];
+
+  const relacionadas = useMemo(() => {
+    if (!noticia) return [];
+    return ordenarNoticiasRecentes(todasNoticias)
+      .filter((n) => String(n.id) !== String(noticia.id))
+      .filter((n) => !noticia.categoria || n.categoria === noticia.categoria || todasNoticias.length <= 3)
+      .slice(0, 3);
+  }, [todasNoticias, noticia]);
+
+  const galeria = noticia?.images?.filter((img) => img.ativo !== false && img.url !== noticia.image_url) || [];
   const documentos = noticia?.documentos || [];
 
   useEffect(() => {
     let ativo = true;
     noticiasService
-      .listar()
+      .listar({ limite: 50 })
       .then((lista) => {
         if (ativo) setTodasNoticias(ordenarNoticiasRecentes(lista.map(normalizarNoticiaApi)));
       })
@@ -97,13 +145,24 @@ export default function NoticiaDetalhePage() {
     };
   }, [id]);
 
+  const compartilhar = async () => {
+    const url = window.location.href;
+    if (navigator.share && noticia) {
+      await navigator.share({ title: noticia.titulo, url }).catch(() => undefined);
+      return;
+    }
+    await navigator.clipboard?.writeText(url).catch(() => undefined);
+    setCopiado(true);
+    window.setTimeout(() => setCopiado(false), 1800);
+  };
+
   if (!noticia) {
     return (
       <PageLayout>
-        <div className="pt-40 pb-20 text-center">
+        <div className="px-4 md:px-8 py-20 text-center">
           <i className="ri-newspaper-line text-6xl text-gray-300 mb-4 block"></i>
-          <h2 className="text-xl font-semibold text-gray-700">Notícia não encontrada</h2>
-          <Link to="/noticias" className="mt-4 inline-block text-sm" style={{ color: config.primaryColor }}>
+          <h1 className="text-xl font-semibold text-gray-700">Notícia não encontrada</h1>
+          <Link to="/noticias" className="mt-4 inline-block text-sm font-semibold text-emerald-700">
             Voltar para Notícias
           </Link>
         </div>
@@ -113,155 +172,113 @@ export default function NoticiaDetalhePage() {
 
   return (
     <PageLayout>
-      {/* Hero */}
-      <div className="w-full h-[40vh] md:h-[55vh] relative">
-        <img src={noticia.image_url} alt={noticia.titulo} className="w-full h-full object-cover object-top" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent"></div>
-        <div className="absolute bottom-0 left-0 right-0 px-4 pb-10 max-w-screen-xl mx-auto">
-          <span
-            className="inline-block px-3 py-1 rounded-full text-xs font-semibold text-white mb-3"
-            style={{ backgroundColor: config.primaryColor }}
-          >
-            {noticia.categoria}
-          </span>
-          <h1 className="text-2xl md:text-4xl font-bold text-white max-w-3xl leading-snug" style={{ fontFamily: "'Poppins', sans-serif" }}>
+      <article className="px-4 md:px-8 py-7 md:py-10 bg-white">
+        <div className="max-w-screen-lg mx-auto">
+          <div className="mb-6 overflow-hidden rounded-md border border-gray-200 bg-gray-100">
+            <img
+              src={noticia.image_url}
+              alt={noticia.titulo}
+              className="w-full max-h-[520px] object-cover object-top"
+            />
+          </div>
+
+          <div className="mb-3">
+            <span className="inline-flex rounded-md border border-blue-200 px-2.5 py-1 text-xs font-semibold text-blue-800 bg-white">
+              {noticia.categoria}
+            </span>
+          </div>
+
+          <h1 className="text-3xl md:text-5xl font-bold leading-tight text-gray-950 mb-4" style={{ fontFamily: "'Poppins', sans-serif" }}>
             {noticia.titulo}
           </h1>
-        </div>
-      </div>
 
-      {/* Content */}
-      <section ref={ref as React.RefObject<HTMLElement>} className="py-12 px-4">
-        <div className="max-w-screen-xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-            {/* Article */}
-            <article className={`lg:col-span-2 ${animClass(isVisible, "slide-up", 0)}`}>
-              <div className="flex flex-wrap items-center gap-4 mb-8 pb-6 border-b border-gray-100">
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                  <i className="ri-user-line text-gray-300"></i>
-                  {noticia.autor}
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                  <i className="ri-calendar-line text-gray-300"></i>
-                  {new Date(noticia.criado_em).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                  <i className="ri-time-line text-gray-300"></i>
-                  {noticia.tempoLeitura} de leitura
-                </div>
-              </div>
+          {noticia.resumo && (
+            <p className="text-lg leading-8 text-gray-600 mb-5">
+              {noticia.resumo}
+            </p>
+          )}
 
-              <p className="text-base text-gray-700 leading-relaxed mb-6 font-medium">{noticia.resumo}</p>
-
-              <div className="prose prose-sm max-w-none">
-                {noticia.conteudo.split("\n\n").map((parag, i) => (
-                  parag.startsWith("**") ? (
-                    <h3 key={i} className="text-base font-bold text-gray-900 mt-6 mb-3" style={{ fontFamily: "'Poppins', sans-serif" }}>
-                      {parag.replace(/\*\*/g, "")}
-                    </h3>
-                  ) : parag.startsWith("- ") ? (
-                    <ul key={i} className="list-disc pl-5 space-y-1 mb-4">
-                      {parag.split("\n").map((item, j) => (
-                        <li key={j} className="text-sm text-gray-600 leading-relaxed">{item.replace("- ", "")}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p key={i} className="text-sm text-gray-600 leading-relaxed mb-4">{parag}</p>
-                  )
-                ))}
-              </div>
-
-              {galeria.length > 0 && (
-                <div className="mt-8 pt-6 border-t border-gray-100">
-                  <h3 className="text-base font-bold text-gray-900 mb-4" style={{ fontFamily: "'Poppins', sans-serif" }}>
-                    Galeria de fotos
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {galeria.map((img: { id: string; url: string; isCover?: boolean }) => (
-                      <div key={img.id} className="rounded-2xl overflow-hidden border border-gray-100 bg-white">
-                        <img src={img.url} alt={noticia.titulo} className="w-full aspect-video object-cover object-top" />
-                        {img.isCover && (
-                          <div className="px-3 py-2 text-xs font-semibold text-gray-500">
-                            Foto de capa
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {documentos.length > 0 && (
-                <div className="mt-6 flex flex-col gap-2">
-                  {documentos.map((doc: { label: string; url: string }) => (
-                    <a
-                      key={doc.url}
-                      href={doc.url}
-                      className="inline-flex items-center gap-2 text-sm font-semibold hover:underline"
-                      style={{ color: config.primaryColor }}
-                    >
-                      <i className="ri-file-word-2-line"></i>
-                      {doc.label}
-                    </a>
-                  ))}
-                </div>
-              )}
-
-              {/* Tags */}
-              <div className="flex flex-wrap gap-2 mt-8 pt-6 border-t border-gray-100">
-                {noticia.tags.map((tag) => (
-                  <span key={tag} className="text-xs px-3 py-1 rounded-full bg-gray-100 text-gray-600 cursor-pointer hover:bg-gray-200 transition-colors">
-                    #{tag}
-                  </span>
-                ))}
-              </div>
-
-              {/* Share */}
-              <div className="mt-6 flex items-center gap-3">
-                <span className="text-xs font-semibold text-gray-500">Compartilhar:</span>
-                {["ri-facebook-fill", "ri-twitter-x-line", "ri-whatsapp-line", "ri-linkedin-fill"].map((ic) => (
-                  <a key={ic} href="#" rel="nofollow" className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-500 transition-all cursor-pointer">
-                    <i className={`${ic} text-sm`}></i>
-                  </a>
-                ))}
-              </div>
-            </article>
-
-            {/* Sidebar */}
-            <aside className={animClass(isVisible, "slide-right", 150)}>
-              <div className="sticky top-24">
-                <h3 className="text-sm font-bold text-gray-900 mb-4" style={{ fontFamily: "'Poppins', sans-serif" }}>Notícias Relacionadas</h3>
-                <div className="flex flex-col gap-4">
-                  {relacionadas.map((rel) => (
-                    <Link key={rel.id} to={`/noticias/${rel.slug || rel.id}`} className="group flex gap-3 cursor-pointer">
-                      <div className="w-20 h-16 flex-shrink-0 rounded-lg overflow-hidden">
-                        <img src={rel.image_url} alt={rel.titulo} className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform" />
-                      </div>
-                      <div>
-                        <span className="text-xs font-medium" style={{ color: config.primaryColor }}>{rel.categoria}</span>
-                        <p className="text-xs font-semibold text-gray-800 leading-snug mt-0.5 group-hover:text-gray-600 transition-colors">{rel.titulo}</p>
-                        <span className="text-xs text-gray-400 mt-1 block">{new Date(rel.criado_em).toLocaleDateString("pt-BR")}</span>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-
-                <div className="mt-8 p-5 rounded-2xl border border-gray-100" style={{ backgroundColor: `${config.primaryColor}08` }}>
-                  <h4 className="text-sm font-bold text-gray-900 mb-2">Receba as novidades</h4>
-                  <p className="text-xs text-gray-500 mb-3">Assine nossa newsletter e fique por dentro de tudo.</p>
-                  <input type="email" placeholder="seu@email.com" className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2.5 mb-2 focus:outline-none" />
-                  <button
-                    className="w-full py-2.5 rounded-lg text-xs font-semibold text-white cursor-pointer whitespace-nowrap"
-                    style={{ backgroundColor: config.primaryColor }}
-                  >
-                    Inscrever-se
-                  </button>
-                </div>
-              </div>
-            </aside>
+          <div className="flex flex-wrap items-center gap-4 border-b border-gray-200 pb-5 mb-7 text-sm text-gray-500">
+            <span className="inline-flex items-center gap-2">
+              <i className="ri-calendar-2-line text-emerald-600"></i>
+              {dataLonga(noticia.criado_em)}
+            </span>
+            {noticia.autor && (
+              <span className="inline-flex items-center gap-2">
+                <i className="ri-user-line text-emerald-600"></i>
+                {noticia.autor}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={compartilhar}
+              className="inline-flex items-center gap-2 rounded-md bg-gray-50 px-3 py-2 font-semibold text-gray-800 hover:bg-gray-100 transition-colors"
+            >
+              <i className="ri-share-forward-line text-emerald-600"></i>
+              {copiado ? "Link copiado" : "Compartilhar"}
+            </button>
           </div>
+
+          <ArticleContent conteudo={noticia.conteudo} />
+
+          {galeria.length > 0 && (
+            <section className="mt-10 border-t border-gray-200 pt-7">
+              <h2 className="text-xl font-bold text-gray-900 mb-4" style={{ fontFamily: "'Poppins', sans-serif" }}>
+                Galeria de fotos
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {galeria.map((img) => (
+                  <img key={img.id} src={img.url} alt={noticia.titulo} className="w-full rounded-md border border-gray-200 aspect-video object-cover object-top" />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {documentos.length > 0 && (
+            <section className="mt-8 flex flex-col gap-2">
+              {documentos.map((doc) => (
+                <a key={doc.url} href={doc.url} className="inline-flex items-center gap-2 text-sm font-semibold text-blue-800 hover:underline">
+                  <i className="ri-file-word-2-line"></i>
+                  {doc.label}
+                </a>
+              ))}
+            </section>
+          )}
+
+          {noticia.tags.length > 0 && (
+            <div className="mt-8 flex flex-wrap gap-2 border-t border-gray-200 pt-5">
+              {noticia.tags.map((tag) => (
+                <span key={tag} className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-600">#{tag}</span>
+              ))}
+            </div>
+          )}
         </div>
-      </section>
+      </article>
+
+      {relacionadas.length > 0 && (
+        <section className="px-4 md:px-8 pb-12 bg-white">
+          <div className="max-w-screen-xl mx-auto border-t border-gray-200 pt-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-5" style={{ fontFamily: "'Poppins', sans-serif" }}>
+              Notícias Relacionadas
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {relacionadas.map((rel) => (
+                <Link key={rel.id} to={`/noticias/${rel.slug || rel.id}`} className="group rounded-xl border border-gray-200 bg-white p-3 shadow-sm hover:shadow-md transition-all">
+                  <div className="flex gap-3">
+                    <div className="h-20 w-28 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100">
+                      <img src={rel.image_url} alt={rel.titulo} className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-xs text-gray-500">{dataLonga(rel.criado_em)}</span>
+                      <p className="mt-1 line-clamp-2 text-sm font-semibold leading-snug text-blue-900 group-hover:text-blue-700">{rel.titulo}</p>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
     </PageLayout>
   );
 }
