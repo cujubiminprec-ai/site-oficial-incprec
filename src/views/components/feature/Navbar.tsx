@@ -324,20 +324,12 @@ export default function Navbar() {
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 cursor-pointer flex-shrink-0">
           {/* Logo image (custom ou padrão) */}
-          {config.logoImageUrl ? (
+          {config.logoImageUrl && (
             <div className="h-8 md:h-10 flex items-center flex-shrink-0">
               <img
                 src={config.logoImageUrl}
                 alt={`Logo ${config.siteName}`}
                 className="h-8 md:h-10 w-auto object-contain transition-all duration-300"
-              />
-            </div>
-          ) : (
-            <div className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0 flex items-center justify-center">
-              <img
-                src="https://static.readdy.ai/image/98faa14093f63576e4d8e45c39fe43a1/863ae8a17b884627cb5c23d8e0f4e88d.png"
-                alt="Logo INPREC"
-                className="w-8 h-8 md:w-10 md:h-10 object-contain transition-all duration-300"
               />
             </div>
           )}
