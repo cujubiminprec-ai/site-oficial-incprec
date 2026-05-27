@@ -26,7 +26,7 @@ export default function Navbar() {
 
   useEffect(() => {
     menuService
-      .listar()
+      .listarPublico()
       .then((loaded) => {
         const filtered = loaded.filter((m) => m.ativo);
         setNavItems(filtered.length > 0 ? filtered : defaultMenuItems.filter((m) => m.ativo));

@@ -39,6 +39,10 @@ app.use(cors({
   origin: (origin, callback) => {
     const permitidos = [
       env.FRONTEND_URL,
+      env.FRONTEND_URL?.replace("https://", "http://"),
+      env.FRONTEND_URL?.replace("https://www.", "https://"),
+      "https://m.inprec.com.br",
+      "http://m.inprec.com.br",
       "http://localhost:3032",
       "http://localhost:5173",
       "http://localhost:4173",
