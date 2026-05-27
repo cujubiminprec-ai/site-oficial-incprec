@@ -291,15 +291,17 @@ function TransparencyCard({
   const [currentSlide, setCurrentSlide] = useState(0);
   const [numPages, setNumPages] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
+  const [iframeError, setIframeError] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const iframeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const hasFile = !!slide.sourceUrl;
   const documentView = getDocumentView(slide.sourceUrl, autoSlideDelay);
-  const isEmbeddedDocument = documentView.canEmbed && ["presentation", "drive", "link"].includes(documentView.kind);
+  const isEmbeddedDocument = !iframeError && documentView.canEmbed && ["presentation", "drive", "link"].includes(documentView.kind);
   const isPdf = documentView.kind === "pdf";
   const hasSlideImages = !isEmbeddedDocument && Array.isArray(slide.slidesImg) && slide.slidesImg.length > 0;
 
-  // PPTX uploaded locally: single download card (no fake 3-slide deck)
+  // PPTX uploaded locally that can't embed: download card
   const isPptxLocal = hasFile && !isEmbeddedDocument && !isPdf && !hasSlideImages;
 
   // Determine slide count
@@ -326,6 +328,20 @@ function TransparencyCard({
     setCurrentSlide(0);
   }, [totalSlides]);
 
+  // For local PPTX via Office Online: fall back to download card after 14s if iframe doesn't load
+  useEffect(() => {
+    setIframeError(false);
+    if (iframeTimeoutRef.current) clearTimeout(iframeTimeoutRef.current);
+
+    const isLocalPptx = documentView.kind === "presentation" && documentView.canEmbed && /^\/uploads\//i.test(slide.sourceUrl || "");
+    if (!isLocalPptx) return;
+
+    iframeTimeoutRef.current = setTimeout(() => setIframeError(true), 14000);
+    return () => {
+      if (iframeTimeoutRef.current) clearTimeout(iframeTimeoutRef.current);
+    };
+  }, [slide.sourceUrl, documentView.kind, documentView.canEmbed]);
+
   const handlePrev = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (totalSlides > 1) {
@@ -343,14 +359,23 @@ function TransparencyCard({
   const renderSlideContent = () => {
     if (!hasFile) {
       return (
-        <div className="flex flex-col items-center justify-center text-center h-full p-5 bg-gray-50/50">
-          <div className="w-11 h-11 flex items-center justify-center rounded-2xl bg-amber-50 text-amber-600 mb-3 border border-amber-100">
-            <i className="ri-file-warning-line text-2xl"></i>
+        <div className="flex flex-col items-center justify-center text-center h-full p-5 bg-gradient-to-b from-gray-50 to-white relative overflow-hidden">
+          {/* Background pattern */}
+          <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "repeating-linear-gradient(45deg, #666 0, #666 1px, transparent 0, transparent 50%)", backgroundSize: "10px 10px" }}></div>
+          <div className="relative z-10 flex flex-col items-center gap-3">
+            <div className="w-14 h-14 flex items-center justify-center rounded-2xl bg-amber-50 text-amber-500 border border-amber-100 shadow-sm">
+              <i className="ri-presentation-line text-3xl"></i>
+            </div>
+            <div>
+              <h4 className="text-[11px] font-extrabold text-gray-600 uppercase tracking-widest">Slides não enviados</h4>
+              <p className="text-[10px] text-gray-400 mt-1 max-w-[160px] leading-relaxed">
+                A apresentação ainda não foi anexada pela administração.
+              </p>
+            </div>
+            <span className="text-[9px] px-2.5 py-1 rounded-full bg-amber-50 text-amber-600 border border-amber-100 font-bold uppercase tracking-wider flex items-center gap-1">
+              <i className="ri-time-line text-[9px]"></i> Aguardando envio
+            </span>
           </div>
-          <h4 className="text-xs font-extrabold text-gray-700 uppercase tracking-wider">Aguardando Envio</h4>
-          <p className="text-[10px] text-gray-400 mt-1 max-w-[180px] leading-relaxed">
-            Este relatório ainda não foi anexado pela administração do instituto.
-          </p>
         </div>
       );
     }
@@ -362,6 +387,7 @@ function TransparencyCard({
           className="w-full h-full border-0 bg-white"
           allowFullScreen
           title={slide.titulo}
+          onLoad={() => { if (iframeTimeoutRef.current) clearTimeout(iframeTimeoutRef.current); }}
         />
       );
     }

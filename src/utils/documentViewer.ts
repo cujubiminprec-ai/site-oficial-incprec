@@ -31,17 +31,26 @@ function normalizeGoogleUrl(url: string, delay: number = 5000): string {
   if (driveId) return `https://drive.google.com/file/d/${driveId}/preview`;
 
   if (/docs\.google\.com\/presentation\/d\//i.test(url)) {
+    // Already an embed URL — just ensure delayms is present
     if (url.includes("/embed")) {
       if (!url.includes("delayms=")) {
         return url.includes("?") ? `${url}&delayms=${delay}` : `${url}?delayms=${delay}`;
       }
       return url;
     }
-    const match = url.match(/\/presentation\/d\/([^/]+)/i);
-    const presentationId = match?.[1];
-    return presentationId
-      ? `https://docs.google.com/presentation/d/${presentationId}/embed?start=true&loop=true&delayms=${delay}`
-      : url;
+
+    // Published URL format: /d/e/{publishedId}/pubhtml or /d/e/{publishedId}/pub
+    // Must be matched before the generic /d/{id} pattern
+    const publishedMatch = url.match(/\/presentation\/d\/e\/([^/?#]+)/i);
+    if (publishedMatch?.[1]) {
+      return `https://docs.google.com/presentation/d/e/${publishedMatch[1]}/embed?start=true&loop=true&delayms=${delay}`;
+    }
+
+    // Regular editable presentation: /d/{presentationId}/edit or /d/{presentationId}/
+    const editMatch = url.match(/\/presentation\/d\/([^/e][^/?#]*)/i);
+    if (editMatch?.[1]) {
+      return `https://docs.google.com/presentation/d/${editMatch[1]}/embed?start=true&loop=true&delayms=${delay}`;
+    }
   }
 
   return url;
@@ -103,10 +112,9 @@ export function getDocumentView(rawUrl?: string, delay: number = 5000): Document
   }
 
   if (isPresentation) {
-    // Locally-uploaded files (/uploads/...) are not reliably accessible by external services.
-    // Only use Office Online viewer for external HTTPS URLs (not same-origin uploads).
-    const isLocalUpload = /^\/uploads\//i.test(sourceUrl);
-    const canUseOfficeViewer = !isLocalUpload && /^https?:\/\//i.test(presentationEmbedSource) && !/^https?:\/\/(localhost|127\.0\.0\.1)(:|\/)/i.test(presentationEmbedSource);
+    // Office Online viewer works for any public HTTPS URL (including same-origin uploads on production).
+    // Exclude localhost only.
+    const canUseOfficeViewer = /^https?:\/\//i.test(presentationEmbedSource) && !/^https?:\/\/(localhost|127\.0\.0\.1)(:|\/)/i.test(presentationEmbedSource);
     return {
       kind: "presentation",
       sourceUrl,
