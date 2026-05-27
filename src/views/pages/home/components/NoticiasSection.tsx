@@ -47,7 +47,7 @@ function normalizarNoticia(n: NoticiaEntrada): HomeNoticia {
 
 export default function NoticiasSection() {
   const { config } = useSiteConfig();
-  const [noticias, setNoticias] = useState<HomeNoticia[]>(ordenarNoticiasRecentes(noticiasMock.map((n) => normalizarNoticia({ ...n, publicada: true }))));
+  const [noticias, setNoticias] = useState<HomeNoticia[]>([]);
 
   useEffect(() => {
     let ativo = true;
@@ -57,9 +57,7 @@ export default function NoticiasSection() {
         .then((apiLista: ApiNoticia[]) => {
           if (!ativo) return;
           const apiNormalizada = apiLista.map(normalizarNoticia);
-          const fallback = noticiasMock.map((n) => normalizarNoticia({ ...n, publicada: true }));
-          const finalLista = apiNormalizada.length > 0 ? apiNormalizada : fallback;
-          setNoticias(ordenarNoticiasRecentes(finalLista.filter((n) => n.publicada !== false)));
+          setNoticias(ordenarNoticiasRecentes(apiNormalizada.filter((n) => n.publicada !== false)));
         })
         .catch(() => {
           if (ativo) setNoticias(ordenarNoticiasRecentes(noticiasMock.map((n) => normalizarNoticia({ ...n, publicada: true }))));

@@ -59,6 +59,40 @@ export interface PainelSlide {
   slidesImg?: string[];
 }
 
+function parseSlideImages(value: unknown): string[] {
+  if (Array.isArray(value)) return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+  if (typeof value !== "string" || !value.trim()) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string" && item.trim().length > 0) : [];
+  } catch {
+    return [];
+  }
+}
+
+function painelSlideFromApi(item: any): PainelSlide {
+  const sourceUrl = String(item.fileUrl || "").trim();
+  return {
+    id: Number(item.id),
+    titulo: item.title || "",
+    descricao: item.description || "",
+    embedUrl: sourceUrl,
+    sourceUrl,
+    tipo: (item.fileType || "PDF") as PainelSlide["tipo"],
+    tamanho: item.fileName || "",
+    ativo: item.isActive === 1 || item.isActive === true || item.isActive === "1",
+    ordem: Number(item.order || 0),
+    dataAtualizacao: item.updatedAt ? String(item.updatedAt).split(" ")[0] : "",
+    slidesImg: parseSlideImages(item.slideImages),
+  };
+}
+
+function mimeTypePainel(tipo?: PainelSlide["tipo"]): string {
+  if (tipo === "PDF") return "application/pdf";
+  if (tipo === "PPT") return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+  return "text/uri-list";
+}
+
 export const transparenciaService = {
   async listarDocumentos(): Promise<any[]> {
     return apiFetch<any[]>("/transparencia/documentos");
@@ -131,19 +165,7 @@ export const transparenciaService = {
 
   async listarPainel(): Promise<PainelSlide[]> {
     const data = await apiFetch<any[]>("/transparencia/painel");
-    return data.map(item => ({
-      id: item.id,
-      titulo: item.title,
-      descricao: item.description,
-      embedUrl: item.fileUrl || "",
-      sourceUrl: item.fileUrl || "",
-      tipo: item.fileType as "PDF" | "PPT" | "LINK",
-      tamanho: item.fileName || "",
-      ativo: item.isActive === 1 || item.isActive === true || item.isActive === "1",
-      ordem: item.order,
-      dataAtualizacao: item.updatedAt ? item.updatedAt.split(" ")[0] : "",
-      slidesImg: Array.isArray(item.slideImages) ? item.slideImages : (typeof item.slideImages === "string" ? JSON.parse(item.slideImages) : [])
-    }));
+    return data.map(painelSlideFromApi);
   },
 
   async obterPainelConfig<T = any>(): Promise<T | null> {
@@ -176,19 +198,7 @@ export const transparenciaService = {
   async listarPainelAdmin(): Promise<PainelSlide[]> {
     const token = getToken();
     const data = await apiFetch<any[]>("/transparencia/painel/admin", { token });
-    return data.map(item => ({
-      id: item.id,
-      titulo: item.title,
-      descricao: item.description,
-      embedUrl: item.fileUrl || "",
-      sourceUrl: item.fileUrl || "",
-      tipo: item.fileType as "PDF" | "PPT" | "LINK",
-      tamanho: item.fileName || "",
-      ativo: item.isActive === 1 || item.isActive === true || item.isActive === "1",
-      ordem: item.order,
-      dataAtualizacao: item.updatedAt ? item.updatedAt.split(" ")[0] : "",
-      slidesImg: Array.isArray(item.slideImages) ? item.slideImages : (typeof item.slideImages === "string" ? JSON.parse(item.slideImages) : [])
-    }));
+    return data.map(painelSlideFromApi);
   },
 
   async salvarPainel(item: PainelSlide): Promise<PainelSlide> {
@@ -196,10 +206,10 @@ export const transparenciaService = {
     const body = {
       title: item.titulo,
       description: item.descricao || "",
-      fileUrl: item.sourceUrl || "",
+      fileUrl: (item.sourceUrl || item.embedUrl || "").trim(),
       fileName: item.tamanho || "",
       fileType: item.tipo || "PDF",
-      mimeType: item.tipo === "PDF" ? "application/pdf" : "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      mimeType: mimeTypePainel(item.tipo),
       slideImages: item.slidesImg || [],
       order: item.ordem,
       isActive: item.ativo ? 1 : 0
@@ -211,38 +221,14 @@ export const transparenciaService = {
         body,
         token
       });
-      return {
-        id: resp.id,
-        titulo: resp.title,
-        descricao: resp.description,
-        embedUrl: resp.fileUrl || "",
-        sourceUrl: resp.fileUrl || "",
-        tipo: resp.fileType,
-        tamanho: resp.fileName,
-        ativo: resp.isActive === 1 || resp.isActive === true || resp.isActive === "1",
-        ordem: resp.order,
-        dataAtualizacao: resp.updatedAt ? resp.updatedAt.split(" ")[0] : "",
-        slidesImg: Array.isArray(resp.slideImages) ? resp.slideImages : (typeof resp.slideImages === "string" ? JSON.parse(resp.slideImages) : [])
-      };
+      return painelSlideFromApi(resp);
     } else {
       const resp = await apiFetch<any>(`/transparencia/painel/${item.id}`, {
         method: "PUT",
         body,
         token
       });
-      return {
-        id: resp.id,
-        titulo: resp.title,
-        descricao: resp.description,
-        embedUrl: resp.fileUrl || "",
-        sourceUrl: resp.fileUrl || "",
-        tipo: resp.fileType,
-        tamanho: resp.fileName,
-        ativo: resp.isActive === 1 || resp.isActive === true || resp.isActive === "1",
-        ordem: resp.order,
-        dataAtualizacao: resp.updatedAt ? resp.updatedAt.split(" ")[0] : "",
-        slidesImg: Array.isArray(resp.slideImages) ? resp.slideImages : (typeof resp.slideImages === "string" ? JSON.parse(resp.slideImages) : [])
-      };
+      return painelSlideFromApi(resp);
     }
   },
 

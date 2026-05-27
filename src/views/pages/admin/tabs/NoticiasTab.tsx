@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useSiteConfig } from "@/contexts/SiteConfigContext";
 import { useSlidesAdmin } from "@/hooks/useSlidesAdmin";
-import { todasNoticias } from "@/mocks/noticias-extra";
 import ImageGalleryUploader, { GalleryImage } from "@/components/base/ImageGalleryUploader";
 import TextoMagico, { MagicFields } from "@/components/base/TextoMagico";
 import { noticiasService } from "@/services/noticias.service";
@@ -61,6 +60,7 @@ function NoticiaFormModal({
   const [tagInput, setTagInput] = useState("");
   const [activeSection, setActiveSection] = useState<"magic" | "manual">("magic");
   const [erro, setErro] = useState("");
+  const [salvando, setSalvando] = useState(false);
   const isNew = noticia.id === 0;
 
   const upd = (k: keyof Noticia, v: string | boolean | string[] | GalleryImage[]) =>
@@ -107,7 +107,14 @@ function NoticiaFormModal({
     }
 
     setErro("");
-    await onSave({ ...form, image_url: coverUrl.trim(), titulo: form.titulo.trim(), categoria: form.categoria.trim() });
+    setSalvando(true);
+    try {
+      await onSave({ ...form, image_url: coverUrl.trim(), titulo: form.titulo.trim(), categoria: form.categoria.trim(), publicada: form.publicada !== false });
+    } catch (err) {
+      setErro(err instanceof Error ? err.message : "Não foi possível salvar a notícia.");
+    } finally {
+      setSalvando(false);
+    }
   };
 
   return (
@@ -345,10 +352,11 @@ function NoticiaFormModal({
             </button>
             <button
               onClick={() => void handleSubmit()}
-              className="flex-1 py-3 rounded-xl text-sm font-semibold text-white cursor-pointer hover:opacity-90 whitespace-nowrap"
+              disabled={salvando}
+              className="flex-1 py-3 rounded-xl text-sm font-semibold text-white cursor-pointer hover:opacity-90 whitespace-nowrap disabled:opacity-60"
               style={{ backgroundColor: primaryColor }}
             >
-              {isNew ? "Publicar Notícia" : "Salvar Alterações"}
+              {salvando ? "Salvando..." : isNew ? "Publicar Notícia" : "Salvar Alterações"}
             </button>
           </div>
         </div>
@@ -421,7 +429,7 @@ export default function NoticiasTab() {
         autor: n.autor,
         destaque: false,
         tags: n.tags,
-        publicado: n.publicada,
+        publicado: n.publicada !== false,
       } as any);
       persist([{ ...n, id: Number(criada.id) }, ...lista]);
     } else {
@@ -434,7 +442,7 @@ export default function NoticiasTab() {
         categoria: n.categoria,
         autor: n.autor,
         tags: n.tags,
-        publicado: n.publicada,
+        publicado: n.publicada !== false,
       } as any);
       persist(lista.map((x) => (x.id === n.id ? n : x)));
     }

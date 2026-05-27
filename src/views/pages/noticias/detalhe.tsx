@@ -58,7 +58,7 @@ export default function NoticiaDetalhePage() {
   const { id } = useParams();
   const { config } = useSiteConfig();
   const { ref, isVisible } = useScrollAnimation({ threshold: 0.05 });
-  const [todasNoticias, setTodasNoticias] = useState<PublicNoticia[]>(getTodasNoticiasLocal);
+  const [todasNoticias, setTodasNoticias] = useState<PublicNoticia[]>([]);
   const [noticiaApi, setNoticiaApi] = useState<PublicNoticia | null>(null);
   const noticiaLocal = todasNoticias.find((n) => String(n.id) === String(id) || n.slug === id);
   const noticia = noticiaApi || noticiaLocal;
@@ -71,7 +71,7 @@ export default function NoticiaDetalhePage() {
     noticiasService
       .listar()
       .then((lista) => {
-        if (ativo) setTodasNoticias(lista.length > 0 ? ordenarNoticiasRecentes(lista.map(normalizarNoticiaApi)) : ordenarNoticiasRecentes(getTodasNoticiasLocal()));
+        if (ativo) setTodasNoticias(ordenarNoticiasRecentes(lista.map(normalizarNoticiaApi)));
       })
       .catch(() => {
         if (ativo) setTodasNoticias(ordenarNoticiasRecentes(getTodasNoticiasLocal()));

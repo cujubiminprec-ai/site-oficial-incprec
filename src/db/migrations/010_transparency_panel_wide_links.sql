@@ -1,0 +1,6 @@
+ALTER TABLE transparency_panel
+  MODIFY title LONGTEXT NOT NULL,
+  MODIFY fileUrl LONGTEXT,
+  MODIFY fileName LONGTEXT,
+  MODIFY fileType VARCHAR(50),
+  MODIFY mimeType LONGTEXT;

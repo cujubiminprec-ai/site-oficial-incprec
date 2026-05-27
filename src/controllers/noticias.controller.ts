@@ -1,5 +1,5 @@
 ﻿import { Router, Request, Response } from "express";
-import { body, query as qParam, validationResult } from "express-validator";
+import { query as qParam } from "express-validator";
 import slugify from "slugify";
 import { query, queryOne, queryPaginado } from "../config/database";
 import { autenticar, exigirPermissao } from "../middleware/auth";
@@ -36,6 +36,20 @@ function normalizarGaleriaNoticias(images: unknown, imageUrl?: string): NoticiaI
 function fotoCapa(images: unknown, imageUrl?: string): string {
   const galeria = normalizarGaleriaNoticias(images, imageUrl);
   return (galeria.find((img) => img.isCover && img.ativo !== false)?.url || imageUrl || "").trim();
+}
+
+function parsePublicado(value: unknown): boolean {
+  return value === true || value === "true" || value === 1 || value === "1" || value === undefined || value === null;
+}
+
+function primeiraMensagemValidacao(erros: string[]): string {
+  return erros[0] || "Verifique os dados da notícia.";
+}
+
+function gerarSlugNoticia(titulo: string): string {
+  const fallback = `noticia-${Date.now()}`;
+  const base = slugify(titulo, { lower: true, strict: true }) || fallback;
+  return base.slice(0, 240).replace(/-+$/g, "") || fallback;
 }
 
 // ============================================================
@@ -125,27 +139,26 @@ router.post(
   autenticar,
   exigirPermissao("noticias"),
   auditoria("criar", "noticias"),
-  [
-    body("titulo").trim().notEmpty().withMessage("Título da notícia obrigatório"),
-    body("categoria").trim().notEmpty().withMessage("Categoria obrigatória"),
-    body("image_url").trim().notEmpty().withMessage("Foto obrigatória"),
-    body("publicado").exists().withMessage("Status obrigatório").isBoolean().withMessage("Status inválido"),
-    body("resumo").optional().isLength({ max: 500 }),
-  ],
   async (req: AuthRequest, res: Response): Promise<void> => {
-    const erros = validationResult(req);
-    if (!erros.isEmpty()) {
-      res.status(400).json({ sucesso: false, erros: erros.array().map((e) => e.msg) });
+    const { titulo, resumo, conteudo, image_url, image_alt, categoria, autor, destaque, publicado, tags, images } = req.body;
+
+    const tituloLimpo = String(titulo || "").trim();
+    const categoriaLimpa = String(categoria || "").trim();
+    const imageUrlLimpa = fotoCapa(images, String(image_url || "").trim());
+    const imagensNormalizadas = normalizarGaleriaNoticias(images, imageUrlLimpa);
+    const publicadoBool = parsePublicado(publicado);
+    const erros = [
+      !tituloLimpo ? "Título da notícia obrigatório" : "",
+      !categoriaLimpa ? "Categoria obrigatória" : "",
+      !imageUrlLimpa ? "Foto obrigatória" : "",
+    ].filter(Boolean) as string[];
+
+    if (erros.length > 0) {
+      res.status(400).json({ sucesso: false, mensagem: primeiraMensagemValidacao(erros), erros });
       return;
     }
 
-    const { titulo, resumo, conteudo, image_url, image_alt, categoria, autor, destaque, publicado, tags, images } = req.body;
-
-    const tituloLimpo = String(titulo).trim();
-    const categoriaLimpa = String(categoria).trim();
-    const imageUrlLimpa = fotoCapa(images, String(image_url).trim());
-    const imagensNormalizadas = normalizarGaleriaNoticias(images, imageUrlLimpa);
-    const slug = slugify(tituloLimpo, { lower: true, strict: true });
+    const slug = gerarSlugNoticia(tituloLimpo);
 
     try {
       const nova = await queryOne(
@@ -154,17 +167,21 @@ router.post(
         [
           tituloLimpo, slug, resumo ?? null, conteudo ?? null, imageUrlLimpa,
           image_alt ?? null, categoriaLimpa, autor ?? null,
-          destaque ?? false, publicado ?? false,
-          publicado ? new Date() : null,
+          destaque ?? false, publicadoBool,
+          publicadoBool ? new Date() : null,
           tags ?? [],
           imagensNormalizadas,
         ]
       );
       res.status(201).json({ sucesso: true, dados: nova });
     } catch (err: unknown) {
+      console.error("Erro ao criar notícia:", err);
       const msg = err instanceof Error ? err.message : "";
+      const code = typeof err === "object" && err !== null && "code" in err ? String((err as { code?: unknown }).code) : "";
       if (msg.includes("unique") || msg.includes("Duplicate entry")) {
-        res.status(409).json({ sucesso: false, mensagem: "Slug já existe. Escolha um título diferente." });
+        res.status(409).json({ sucesso: false, mensagem: "Já existe uma notícia com esse título. Altere um pouco o título." });
+      } else if (code === "ER_DATA_TOO_LONG" || msg.includes("Data too long")) {
+        res.status(400).json({ sucesso: false, mensagem: "Um dos campos da notícia está muito longo. Reduza o título ou o caminho da imagem." });
       } else {
         res.status(500).json({ sucesso: false, mensagem: "Erro ao criar notícia." });
       }
@@ -183,9 +200,11 @@ router.put(
   async (req: AuthRequest, res: Response): Promise<void> => {
     const { titulo, resumo, conteudo, image_url, image_alt, categoria, autor, destaque, publicado, tags, images } = req.body;
     const tituloLimpo = typeof titulo === "string" ? titulo.trim() : undefined;
+    const categoriaLimpa = typeof categoria === "string" ? categoria.trim() : undefined;
     const imageUrlLimpa = typeof image_url === "string" ? fotoCapa(images, image_url.trim()) : undefined;
     const imagensNormalizadas = Array.isArray(images) ? normalizarGaleriaNoticias(images, imageUrlLimpa) : undefined;
-    const slug = tituloLimpo ? slugify(tituloLimpo, { lower: true, strict: true }) : undefined;
+    const publicadoBool = publicado === undefined ? undefined : parsePublicado(publicado);
+    const slug = tituloLimpo ? gerarSlugNoticia(tituloLimpo) : undefined;
 
     try {
       const atualizada = await queryOne(
@@ -206,16 +225,25 @@ router.put(
           atualizado_em = NOW()
          WHERE id = $13 RETURNING *`,
         [tituloLimpo ?? null, slug ?? null, resumo ?? null, conteudo ?? null, imageUrlLimpa ?? null,
-         image_alt ?? null, categoria ?? null, autor ?? null, destaque ?? null,
-         publicado ?? null, tags ?? null, imagensNormalizadas ?? null, req.params.id]
+         image_alt ?? null, categoriaLimpa ?? null, autor ?? null, destaque ?? null,
+         publicadoBool ?? null, tags ?? null, imagensNormalizadas ?? null, req.params.id]
       );
       if (!atualizada) {
         res.status(404).json({ sucesso: false, mensagem: "Notícia não encontrada." });
         return;
       }
       res.json({ sucesso: true, dados: atualizada });
-    } catch {
-      res.status(500).json({ sucesso: false, mensagem: "Erro ao atualizar notícia." });
+    } catch (err) {
+      console.error("Erro ao atualizar notícia:", err);
+      const msg = err instanceof Error ? err.message : "";
+      const code = typeof err === "object" && err !== null && "code" in err ? String((err as { code?: unknown }).code) : "";
+      if (msg.includes("unique") || msg.includes("Duplicate entry")) {
+        res.status(409).json({ sucesso: false, mensagem: "Já existe uma notícia com esse título. Altere um pouco o título." });
+      } else if (code === "ER_DATA_TOO_LONG" || msg.includes("Data too long")) {
+        res.status(400).json({ sucesso: false, mensagem: "Um dos campos da notícia está muito longo. Reduza o título ou o caminho da imagem." });
+      } else {
+        res.status(500).json({ sucesso: false, mensagem: "Erro ao atualizar notícia." });
+      }
     }
   }
 );

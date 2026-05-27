@@ -1,0 +1,5 @@
+ALTER TABLE noticias
+  MODIFY titulo LONGTEXT NOT NULL,
+  MODIFY image_url LONGTEXT,
+  MODIFY image_alt LONGTEXT,
+  MODIFY autor LONGTEXT;
