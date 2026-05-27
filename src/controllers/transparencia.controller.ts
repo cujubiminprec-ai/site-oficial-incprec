@@ -35,6 +35,43 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   }
 });
 
+// GET /api/transparencia/documentos  (público — alias para /)
+router.get("/documentos", async (req: Request, res: Response): Promise<void> => {
+  const categoria = req.query.categoria as string | undefined;
+  const ano       = req.query.ano as string | undefined;
+  const busca     = req.query.busca as string | undefined;
+
+  const conds: string[]  = ["ativo = TRUE"];
+  const params: unknown[] = [];
+
+  if (categoria && categoria !== "Todos") { params.push(categoria); conds.push(`categoria = $${params.length}`); }
+  if (ano && ano !== "Todos")             { params.push(parseInt(ano,10)); conds.push(`ano = $${params.length}`); }
+  if (busca)                              { params.push(`%${busca}%`); conds.push(`titulo ILIKE $${params.length}`); }
+
+  try {
+    const result = await query(
+      `SELECT id, titulo, categoria, icone, ano, tipo_arquivo, tamanho, arquivo_url, link_externo, destaque, publicado_em
+       FROM transparencia_documentos WHERE ${conds.join(" AND ")} ORDER BY destaque DESC, publicado_em DESC`,
+      params
+    );
+    res.json({ sucesso: true, dados: result.rows });
+  } catch {
+    res.status(500).json({ sucesso: false, mensagem: "Erro ao listar documentos." });
+  }
+});
+
+// GET /api/transparencia/documentos/admin  (admin)
+router.get("/documentos/admin", autenticar, async (_req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const result = await query(
+      `SELECT * FROM transparencia_documentos ORDER BY destaque DESC, publicado_em DESC`
+    );
+    res.json({ sucesso: true, dados: result.rows });
+  } catch {
+    res.status(500).json({ sucesso: false, mensagem: "Erro ao listar documentos (admin)." });
+  }
+});
+
 // GET /api/transparencia/financas  (público)
 router.get("/financas", async (req: Request, res: Response): Promise<void> => {
   const secao = req.query.secao as string | undefined;

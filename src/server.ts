@@ -16,7 +16,24 @@ const app = express();
 
 app.set("trust proxy", 1);
 
-app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net", "'unsafe-inline'"],
+      scriptSrcElem: ["'self'", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"],
+      workerSrc: ["'self'", "blob:", "https://cdnjs.cloudflare.com"],
+      imgSrc: ["'self'", "data:", "blob:", "https:"],
+      styleSrc: ["'self'", "https:", "'unsafe-inline'"],
+      fontSrc: ["'self'", "https:", "data:"],
+      frameSrc: ["'self'", "https://docs.google.com", "https://drive.google.com", "https://view.officeapps.live.com", "https:"],
+      connectSrc: ["'self'", "blob:", "https://cdnjs.cloudflare.com"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+    },
+  },
+}));
 
 app.use(cors({
   origin: (origin, callback) => {

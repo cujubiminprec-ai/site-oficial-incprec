@@ -32,7 +32,7 @@ function GestorModal({ gestor, onClose, primaryColor }: { gestor: Gestor; onClos
           </button>
           <div className="absolute -bottom-12 left-1/2 -translate-x-1/2">
             <div className="w-24 h-24 rounded-full border-4 border-white overflow-hidden">
-              <img src={gestor.foto} alt={gestor.nome} className="w-full h-full object-cover object-top" />
+              <img src={gestor.foto} alt={gestor.nome} className="w-full h-full object-cover object-top" onError={(e) => { e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23e5e7eb'/%3E%3Ccircle cx='50' cy='38' r='18' fill='%239ca3af'/%3E%3Cellipse cx='50' cy='75' rx='28' ry='18' fill='%239ca3af'/%3E%3C/svg%3E"; }} />
             </div>
           </div>
         </div>
@@ -200,6 +200,7 @@ function GestorCard({ gestor, onClick, primaryColor }: { gestor: Gestor; onClick
           src={gestor.foto}
           alt={gestor.nome}
           className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
+          onError={(e) => { e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23e5e7eb'/%3E%3Ccircle cx='50' cy='38' r='18' fill='%239ca3af'/%3E%3Cellipse cx='50' cy='75' rx='28' ry='18' fill='%239ca3af'/%3E%3C/svg%3E"; }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-3">
           <span className="text-white text-xs font-semibold bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">

@@ -5,6 +5,7 @@ import {
   notificacoesAdminDefault,
 } from "@/mocks/notificacoes-admin";
 import { notificacoesService } from "@/services/notificacoes.service";
+import { getToken } from "@/services/api";
 
 interface NotificacoesContextValue {
   notificacoes: NotificacaoAdmin[];
@@ -50,6 +51,7 @@ export function NotificacoesProvider({ children }: { children: ReactNode }) {
   const [notificacoes, setNotificacoes] = useState<NotificacaoAdmin[]>(notificacoesAdminDefault);
 
   useEffect(() => {
+    if (!getToken()) return;
     let ativo = true;
     notificacoesService.listar()
       .then((lista) => {
