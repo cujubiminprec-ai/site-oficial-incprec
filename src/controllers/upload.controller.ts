@@ -8,6 +8,14 @@ import env from "../config/env";
 
 const router = Router();
 
+function permitirLeituraPublica(caminho: string): void {
+  try {
+    fs.chmodSync(caminho, 0o644);
+  } catch {
+    // Se o sistema de arquivos negar chmod, o upload continua registrado normalmente.
+  }
+}
+
 // ============================================================
 // POST /api/upload  — upload único (admin)
 // ============================================================
@@ -28,6 +36,8 @@ router.post(
       res.status(400).json({ sucesso: false, mensagem: "Nenhum arquivo enviado." });
       return;
     }
+
+    permitirLeituraPublica(req.file.path);
 
     const pasta     = normalizarPastaUpload(req.query.pasta as string | undefined);
     const publicUrl = urlPublica(req.file.path, req);
@@ -97,6 +107,7 @@ router.post(
     const resultados: { id: number; nome: string; url: string; caminho: string; tipo_mime: string; tamanho: number; pasta: string }[] = [];
 
     for (const f of files) {
+      permitirLeituraPublica(f.path);
       const publicUrl = urlPublica(f.path, req);
       const caminho   = `/uploads/${pasta}/${f.filename}`;
 
