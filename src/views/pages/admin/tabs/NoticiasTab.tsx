@@ -265,7 +265,7 @@ function NoticiaFormModal({
               <label className="text-xs font-semibold text-gray-600 mb-1.5 block">Data de Publicação</label>
               <input
                 type="date"
-                value={form.criado_em}
+                value={form.criado_em?.split("T")[0] || ""}
                 onChange={(e) => upd("criado_em", e.target.value)}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none"
               />
@@ -418,6 +418,7 @@ export default function NoticiasTab() {
   };
 
   const handleSave = async (n: Noticia) => {
+    const publicadoEm = n.criado_em ? n.criado_em.split("T")[0] : undefined;
     if (n.id === 0) {
       const criada = await noticiasService.criar({
         titulo: n.titulo,
@@ -430,6 +431,7 @@ export default function NoticiasTab() {
         destaque: false,
         tags: n.tags,
         publicado: n.publicada !== false,
+        publicado_em: publicadoEm,
       } as any);
       persist([{ ...n, id: Number(criada.id) }, ...lista]);
     } else {
@@ -443,6 +445,7 @@ export default function NoticiasTab() {
         autor: n.autor,
         tags: n.tags,
         publicado: n.publicada !== false,
+        publicado_em: publicadoEm,
       } as any);
       persist(lista.map((x) => (x.id === n.id ? n : x)));
     }

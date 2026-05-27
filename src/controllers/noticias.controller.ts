@@ -140,13 +140,14 @@ router.post(
   exigirPermissao("noticias"),
   auditoria("criar", "noticias"),
   async (req: AuthRequest, res: Response): Promise<void> => {
-    const { titulo, resumo, conteudo, image_url, image_alt, categoria, autor, destaque, publicado, tags, images } = req.body;
+    const { titulo, resumo, conteudo, image_url, image_alt, categoria, autor, destaque, publicado, tags, images, publicado_em } = req.body;
 
     const tituloLimpo = String(titulo || "").trim();
     const categoriaLimpa = String(categoria || "").trim();
     const imageUrlLimpa = fotoCapa(images, String(image_url || "").trim());
     const imagensNormalizadas = normalizarGaleriaNoticias(images, imageUrlLimpa);
     const publicadoBool = parsePublicado(publicado);
+    const dataPublicacao = publicado_em ? new Date(publicado_em) : (publicadoBool ? new Date() : null);
     const erros = [
       !tituloLimpo ? "Título da notícia obrigatório" : "",
       !categoriaLimpa ? "Categoria obrigatória" : "",
@@ -168,7 +169,7 @@ router.post(
           tituloLimpo, slug, resumo ?? null, conteudo ?? null, imageUrlLimpa,
           image_alt ?? null, categoriaLimpa, autor ?? null,
           destaque ?? false, publicadoBool,
-          publicadoBool ? new Date() : null,
+          dataPublicacao,
           tags ?? [],
           imagensNormalizadas,
         ]
@@ -198,12 +199,13 @@ router.put(
   exigirPermissao("noticias"),
   auditoria("editar", "noticias"),
   async (req: AuthRequest, res: Response): Promise<void> => {
-    const { titulo, resumo, conteudo, image_url, image_alt, categoria, autor, destaque, publicado, tags, images } = req.body;
+    const { titulo, resumo, conteudo, image_url, image_alt, categoria, autor, destaque, publicado, tags, images, publicado_em } = req.body;
     const tituloLimpo = typeof titulo === "string" ? titulo.trim() : undefined;
     const categoriaLimpa = typeof categoria === "string" ? categoria.trim() : undefined;
     const imageUrlLimpa = typeof image_url === "string" ? fotoCapa(images, image_url.trim()) : undefined;
     const imagensNormalizadas = Array.isArray(images) ? normalizarGaleriaNoticias(images, imageUrlLimpa) : undefined;
     const publicadoBool = publicado === undefined ? undefined : parsePublicado(publicado);
+    const dataPublicacao = publicado_em ? new Date(publicado_em) : undefined;
     const slug = tituloLimpo ? gerarSlugNoticia(tituloLimpo) : undefined;
 
     try {
@@ -219,14 +221,15 @@ router.put(
           autor = COALESCE($8, autor),
           destaque = COALESCE($9, destaque),
           publicado = COALESCE($10, publicado),
-          publicado_em = CASE WHEN $10 = TRUE AND publicado = FALSE THEN NOW() ELSE publicado_em END,
+          publicado_em = CASE WHEN $14 IS NOT NULL THEN $14 WHEN $10 = TRUE AND publicado = FALSE THEN NOW() ELSE publicado_em END,
           tags = COALESCE($11, tags),
           images = COALESCE($12, images),
           atualizado_em = NOW()
          WHERE id = $13 RETURNING *`,
         [tituloLimpo ?? null, slug ?? null, resumo ?? null, conteudo ?? null, imageUrlLimpa ?? null,
          image_alt ?? null, categoriaLimpa ?? null, autor ?? null, destaque ?? null,
-         publicadoBool ?? null, tags ?? null, imagensNormalizadas ?? null, req.params.id]
+         publicadoBool ?? null, tags ?? null, imagensNormalizadas ?? null, req.params.id,
+         dataPublicacao ?? null]
       );
       if (!atualizada) {
         res.status(404).json({ sucesso: false, mensagem: "Notícia não encontrada." });
