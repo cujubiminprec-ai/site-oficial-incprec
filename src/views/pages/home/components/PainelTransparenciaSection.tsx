@@ -297,10 +297,12 @@ function TransparencyCard({
 
   const hasFile = !!slide.sourceUrl;
   const documentView = getDocumentView(slide.sourceUrl, autoSlideDelay);
-  // Prefer converted slide images over any iframe embed
-  const hasSlideImages = Array.isArray(slide.slidesImg) && slide.slidesImg.length > 0;
-  const isEmbeddedDocument = !hasSlideImages && !iframeError && documentView.canEmbed && ["presentation", "drive", "link"].includes(documentView.kind);
-  const isPdf = !hasSlideImages && documentView.kind === "pdf";
+  // PDF always takes priority — rendered natively via PDF.js
+  const isPdf = documentView.kind === "pdf";
+  // Slide images (from PPTX conversion) only used for non-PDF files
+  const hasSlideImages = !isPdf && Array.isArray(slide.slidesImg) && slide.slidesImg.length > 0;
+  // Embedded iframe only as last resort: no PDF, no converted images
+  const isEmbeddedDocument = !isPdf && !hasSlideImages && !iframeError && documentView.canEmbed && ["presentation", "drive", "link"].includes(documentView.kind);
 
   // PPTX uploaded locally that can't embed and has no images: download card
   const isPptxLocal = hasFile && !isEmbeddedDocument && !isPdf && !hasSlideImages;
@@ -568,9 +570,9 @@ function FullscreenDocumentViewer({
 }) {
   const hasFile = !!slide.sourceUrl;
   const documentView = getDocumentView(slide.sourceUrl);
-  const hasSlideImages = Array.isArray(slide.slidesImg) && slide.slidesImg.length > 0;
-  const isEmbeddedDocument = !hasSlideImages && documentView.canEmbed && ["presentation", "drive", "link"].includes(documentView.kind);
-  const isPdf = !hasSlideImages && documentView.kind === "pdf";
+  const isPdf = documentView.kind === "pdf";
+  const hasSlideImages = !isPdf && Array.isArray(slide.slidesImg) && slide.slidesImg.length > 0;
+  const isEmbeddedDocument = !isPdf && !hasSlideImages && documentView.canEmbed && ["presentation", "drive", "link"].includes(documentView.kind);
 
   const [currentPage, setCurrentPage] = useState(0);
   const [numPages, setNumPages] = useState(0);

@@ -2146,8 +2146,8 @@ function PainelTransparenciaTab() {
     try {
       const pasta = pastaPublicaPorArquivo("painel", file);
       const uploaded = await uploadService.upload(file, pasta);
-      setEditSlide((prev) => prev ? { ...prev, sourceUrl: uploaded.url, embedUrl: uploaded.url, tipo: inferDocumentType(uploaded.url), tamanho: formatFileSize(file.size), dataAtualizacao: new Date().toISOString().split("T")[0] } : prev);
-      setUploadPainelInfo("Arquivo enviado com sucesso.");
+      setEditSlide((prev) => prev ? { ...prev, sourceUrl: uploaded.url, embedUrl: uploaded.url, tipo: inferDocumentType(uploaded.url) as PainelSlide["tipo"], tamanho: formatFileSize(file.size), dataAtualizacao: new Date().toISOString().split("T")[0], slidesImg: [] } : prev);
+      setUploadPainelInfo("Arquivo enviado. Salve para aplicar.");
     } catch (err) {
       setUploadPainelErro(err instanceof Error ? err.message : "Erro no upload.");
     } finally {
@@ -2190,6 +2190,7 @@ function PainelTransparenciaTab() {
         tipo: inferDocumentType(uploaded.url) as PainelSlide["tipo"],
         tamanho: formatFileSize(file.size),
         dataAtualizacao: new Date().toISOString().split("T")[0],
+        slidesImg: [],
       });
       setSlides((prev) => prev.map((s) => s.id === salvo.id ? salvo : s));
       window.dispatchEvent(new Event("inprec-painel-transparencia-updated"));
