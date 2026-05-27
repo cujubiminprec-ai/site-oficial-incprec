@@ -8,6 +8,7 @@ export interface Noticia {
   imagem?: string;
   image_url?: string;
   image_alt?: string;
+  images?: { id: string; url: string; isCover?: boolean; ativo?: boolean }[];
   categoria: string;
   data?: string;
   criado_em?: string;
@@ -30,6 +31,7 @@ export interface NoticiaCreate {
   imagem?: string;
   image_url?: string;
   image_alt?: string;
+  images?: { id: string; url: string; isCover?: boolean; ativo?: boolean }[];
   categoria: string;
   destaque?: boolean;
   autor?: string;

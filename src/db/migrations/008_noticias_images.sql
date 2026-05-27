@@ -1,0 +1,2 @@
+ALTER TABLE noticias
+  ADD COLUMN images LONGTEXT NOT NULL DEFAULT ('[]');

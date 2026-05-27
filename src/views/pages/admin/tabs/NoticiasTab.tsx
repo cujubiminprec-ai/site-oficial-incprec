@@ -23,6 +23,29 @@ type Noticia = {
 
 const categoriasOpcoes = ["Institucional", "Capacitação", "Parceria", "Evento", "Transparência", "Serviço", "Previdência", "Comunicado"];
 
+function normalizarImagensNoticia(images: unknown, imageUrl?: string): GalleryImage[] {
+  const galeria = Array.isArray(images)
+    ? images
+        .filter((img): img is Partial<GalleryImage> => Boolean(img && typeof img === "object" && "url" in img && String((img as Partial<GalleryImage>).url || "").trim()))
+        .map((img, index) => ({
+          id: String(img.id || "noticia_img_" + index),
+          url: String(img.url || "").trim(),
+          isCover: img.isCover === true,
+          ativo: img.ativo !== false,
+        }))
+    : [];
+
+  if (galeria.length === 0 && imageUrl) {
+    galeria.push({ id: "noticia_cover", url: imageUrl, isCover: true, ativo: true });
+  }
+
+  if (galeria.length > 0 && !galeria.some((img) => img.isCover && img.ativo)) {
+    galeria[0].isCover = true;
+  }
+
+  return galeria;
+}
+
 function NoticiaFormModal({
   noticia,
   onSave,
@@ -355,7 +378,7 @@ export default function NoticiasTab() {
             resumo: n.resumo || "",
             conteudo: n.conteudo || "",
             image_url: n.image_url || n.imagem || "",
-            images: n.image_url ? [{ id: `noticia-${n.id}`, url: n.image_url, isCover: true, ativo: true }] : [],
+            images: normalizarImagensNoticia(n.images, n.image_url || n.imagem || ""),
             criado_em: n.publicado_em || n.criado_em || new Date().toISOString().split("T")[0],
             autor: n.autor || "INPREC",
             tempoLeitura: "3 min",
@@ -395,6 +418,7 @@ export default function NoticiasTab() {
         resumo: n.resumo,
         conteudo: n.conteudo,
         image_url: n.image_url,
+        images: n.images,
         categoria: n.categoria,
         autor: n.autor,
         destaque: false,
@@ -408,6 +432,7 @@ export default function NoticiasTab() {
         resumo: n.resumo,
         conteudo: n.conteudo,
         image_url: n.image_url,
+        images: n.images,
         categoria: n.categoria,
         autor: n.autor,
         tags: n.tags,

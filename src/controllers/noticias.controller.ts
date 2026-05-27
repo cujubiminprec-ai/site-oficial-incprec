@@ -8,6 +8,36 @@ import { AuthRequest } from "../types";
 
 const router = Router();
 
+type NoticiaImagem = { id?: string; url?: string; isCover?: boolean; ativo?: boolean };
+
+function normalizarGaleriaNoticias(images: unknown, imageUrl?: string): NoticiaImagem[] {
+  const galeria = Array.isArray(images)
+    ? images
+        .filter((img): img is NoticiaImagem => Boolean(img && typeof img === "object" && "url" in img && String((img as NoticiaImagem).url || "").trim()))
+        .map((img, index) => ({
+          id: String(img.id || "img_" + index),
+          url: String(img.url || "").trim(),
+          isCover: img.isCover === true,
+          ativo: img.ativo !== false,
+        }))
+    : [];
+
+  if (galeria.length === 0 && imageUrl) {
+    galeria.push({ id: "cover", url: imageUrl, isCover: true, ativo: true });
+  }
+
+  if (galeria.length > 0 && !galeria.some((img) => img.isCover && img.ativo !== false)) {
+    galeria[0].isCover = true;
+  }
+
+  return galeria;
+}
+
+function fotoCapa(images: unknown, imageUrl?: string): string {
+  const galeria = normalizarGaleriaNoticias(images, imageUrl);
+  return (galeria.find((img) => img.isCover && img.ativo !== false)?.url || imageUrl || "").trim();
+}
+
 // ============================================================
 // GET /api/noticias  (público)
 // ============================================================
@@ -34,7 +64,7 @@ router.get(
     if (busca)     { params.push(`%${busca}%`); condicoes.push(`(titulo ILIKE $${params.length} OR resumo ILIKE $${params.length})`); }
 
     const where = condicoes.join(" AND ");
-    const sql = `SELECT id, titulo, slug, resumo, image_url, categoria, autor, destaque, publicado_em, visualizacoes, tags
+    const sql = `SELECT id, titulo, slug, resumo, image_url, categoria, autor, destaque, publicado_em, visualizacoes, tags, images
                  FROM noticias WHERE ${where} ORDER BY publicado_em DESC`;
 
     try {
@@ -109,23 +139,25 @@ router.post(
       return;
     }
 
-    const { titulo, resumo, conteudo, image_url, image_alt, categoria, autor, destaque, publicado, tags } = req.body;
+    const { titulo, resumo, conteudo, image_url, image_alt, categoria, autor, destaque, publicado, tags, images } = req.body;
 
     const tituloLimpo = String(titulo).trim();
     const categoriaLimpa = String(categoria).trim();
-    const imageUrlLimpa = String(image_url).trim();
+    const imageUrlLimpa = fotoCapa(images, String(image_url).trim());
+    const imagensNormalizadas = normalizarGaleriaNoticias(images, imageUrlLimpa);
     const slug = slugify(tituloLimpo, { lower: true, strict: true });
 
     try {
       const nova = await queryOne(
-        `INSERT INTO noticias (titulo, slug, resumo, conteudo, image_url, image_alt, categoria, autor, destaque, publicado, publicado_em, tags)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+        `INSERT INTO noticias (titulo, slug, resumo, conteudo, image_url, image_alt, categoria, autor, destaque, publicado, publicado_em, tags, images)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
         [
           tituloLimpo, slug, resumo ?? null, conteudo ?? null, imageUrlLimpa,
           image_alt ?? null, categoriaLimpa, autor ?? null,
           destaque ?? false, publicado ?? false,
           publicado ? new Date() : null,
           tags ?? [],
+          imagensNormalizadas,
         ]
       );
       res.status(201).json({ sucesso: true, dados: nova });
@@ -149,8 +181,11 @@ router.put(
   exigirPermissao("noticias"),
   auditoria("editar", "noticias"),
   async (req: AuthRequest, res: Response): Promise<void> => {
-    const { titulo, resumo, conteudo, image_url, image_alt, categoria, autor, destaque, publicado, tags } = req.body;
-    const slug = titulo ? slugify(titulo, { lower: true, strict: true }) : undefined;
+    const { titulo, resumo, conteudo, image_url, image_alt, categoria, autor, destaque, publicado, tags, images } = req.body;
+    const tituloLimpo = typeof titulo === "string" ? titulo.trim() : undefined;
+    const imageUrlLimpa = typeof image_url === "string" ? fotoCapa(images, image_url.trim()) : undefined;
+    const imagensNormalizadas = Array.isArray(images) ? normalizarGaleriaNoticias(images, imageUrlLimpa) : undefined;
+    const slug = tituloLimpo ? slugify(tituloLimpo, { lower: true, strict: true }) : undefined;
 
     try {
       const atualizada = await queryOne(
@@ -167,11 +202,12 @@ router.put(
           publicado = COALESCE($10, publicado),
           publicado_em = CASE WHEN $10 = TRUE AND publicado = FALSE THEN NOW() ELSE publicado_em END,
           tags = COALESCE($11, tags),
+          images = COALESCE($12, images),
           atualizado_em = NOW()
-         WHERE id = $12 RETURNING *`,
-        [titulo ?? null, slug ?? null, resumo ?? null, conteudo ?? null, image_url ?? null,
+         WHERE id = $13 RETURNING *`,
+        [tituloLimpo ?? null, slug ?? null, resumo ?? null, conteudo ?? null, imageUrlLimpa ?? null,
          image_alt ?? null, categoria ?? null, autor ?? null, destaque ?? null,
-         publicado ?? null, tags ?? null, req.params.id]
+         publicado ?? null, tags ?? null, imagensNormalizadas ?? null, req.params.id]
       );
       if (!atualizada) {
         res.status(404).json({ sucesso: false, mensagem: "Notícia não encontrada." });

@@ -224,6 +224,7 @@ CREATE TABLE IF NOT EXISTS noticias (
     publicado_em  TEXT,
     visualizacoes INTEGER NOT NULL DEFAULT 0,
     tags          TEXT NOT NULL DEFAULT '[]',
+    images        TEXT NOT NULL DEFAULT '[]',
     criado_em     TEXT NOT NULL DEFAULT (datetime('now')),
     atualizado_em TEXT NOT NULL DEFAULT (datetime('now'))
 );

@@ -48,7 +48,7 @@ function normalizarNoticiaApi(n: ApiNoticia): PublicNoticia {
     autor: n.autor || "INPREC",
     tempoLeitura: "3 min",
     tags: Array.isArray(n.tags) ? n.tags : [],
-    images: [],
+    images: Array.isArray(n.images) ? n.images : (n.image_url ? [{ id: `noticia-${n.id}`, url: n.image_url, isCover: true, ativo: true }] : []),
     documentos: [],
     publicada: true,
   };
