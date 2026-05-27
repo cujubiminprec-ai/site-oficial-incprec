@@ -299,8 +299,11 @@ function TransparencyCard({
   const isPdf = documentView.kind === "pdf";
   const hasSlideImages = !isEmbeddedDocument && Array.isArray(slide.slidesImg) && slide.slidesImg.length > 0;
 
+  // PPTX uploaded locally: single download card (no fake 3-slide deck)
+  const isPptxLocal = hasFile && !isEmbeddedDocument && !isPdf && !hasSlideImages;
+
   // Determine slide count
-  const totalSlides = isEmbeddedDocument ? 1 : (isPdf && numPages > 0 ? numPages : (hasSlideImages ? slide.slidesImg!.length : (hasFile ? 3 : 1)));
+  const totalSlides = isEmbeddedDocument ? 1 : (isPdf && numPages > 0 ? numPages : (hasSlideImages ? slide.slidesImg!.length : 1));
 
   // Auto progression every 5 seconds, pauses on hover
   useEffect(() => {
@@ -387,57 +390,42 @@ function TransparencyCard({
       );
     }
 
-    // PPTX Presentation Mock Deck
-    if (currentSlide === 0) {
+    // PPTX / arquivo local: card único com info + botão de download
+    if (isPptxLocal) {
       return (
-        <div className="flex flex-col items-center justify-center text-center h-full p-4 bg-white">
-          <div className="w-14 h-14 flex items-center justify-center rounded-2xl mb-3 bg-amber-50 text-[#E65100] shadow-3xs border border-orange-100">
+        <div className="flex flex-col items-center justify-center text-center h-full p-5 bg-white gap-3">
+          <div className="w-14 h-14 flex items-center justify-center rounded-2xl bg-orange-50 text-[#E65100] border border-orange-100 shadow-sm">
             <i className="ri-slideshow-2-line text-3xl"></i>
           </div>
-          <h3 className="text-xs font-extrabold text-gray-800 px-4 mb-1 line-clamp-2">{slide.titulo}</h3>
-          <span className="text-[9px] px-2.5 py-0.5 rounded-full font-extrabold bg-orange-50 text-[#E65100] border border-orange-100 uppercase tracking-wider">
-            Apresentação PPTX
-          </span>
-        </div>
-      );
-    }
-    if (currentSlide === 1) {
-      return (
-        <div className="flex flex-col items-center justify-center text-center h-full p-5 bg-gradient-to-b from-transparent to-gray-50/20">
-          <div className="w-8 h-8 flex items-center justify-center rounded-full mb-2 bg-gray-100 text-gray-500">
-            <i className="ri-information-line text-sm"></i>
+          <div>
+            <span className="text-[9px] px-2.5 py-0.5 rounded-full font-extrabold bg-orange-50 text-[#E65100] border border-orange-100 uppercase tracking-wider">
+              {slide.tipo === "PPT" ? "Apresentação PPTX" : slide.tipo || "Arquivo"}
+            </span>
+            {slide.descricao && (
+              <p className="text-[10px] text-gray-500 mt-2 max-w-[200px] leading-relaxed line-clamp-3">
+                {slide.descricao}
+              </p>
+            )}
           </div>
-          <h4 className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Informações</h4>
-          <p className="text-[11px] text-gray-600 leading-relaxed max-w-[200px] line-clamp-4">
-            {slide.descricao || "Apresentação oficial de prestação de contas de investimentos previdenciários e balanço do INPREC."}
-          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={(e) => { e.stopPropagation(); onExpand(); }}
+              className="px-3.5 py-1.5 rounded-lg text-[10px] font-extrabold bg-[#2E7D32] text-white shadow-sm hover:opacity-90 active:scale-95 transition-all cursor-pointer flex items-center gap-1"
+            >
+              <i className="ri-eye-line text-[10px]"></i> Ver info
+            </button>
+            <a
+              href={slide.sourceUrl}
+              download
+              onClick={(e) => e.stopPropagation()}
+              className="px-3.5 py-1.5 rounded-lg text-[10px] font-extrabold border border-[#2E7D32] text-[#2E7D32] hover:bg-green-50 transition-colors bg-white flex items-center gap-1"
+            >
+              <i className="ri-download-line text-[10px]"></i> Baixar
+            </a>
+          </div>
         </div>
       );
     }
-    return (
-      <div className="flex flex-col items-center justify-center text-center h-full p-4 bg-white">
-        <div className="w-10 h-10 flex items-center justify-center rounded-full mb-2 bg-green-50 text-green-500">
-          <i className="ri-download-cloud-2-line text-lg"></i>
-        </div>
-        <p className="text-xs font-extrabold text-gray-700 mb-3">Pronto para download</p>
-        <div className="flex gap-2">
-          <button
-            onClick={(e) => { e.stopPropagation(); onExpand(); }}
-            className="px-3.5 py-1.5 rounded-lg text-[10px] font-extrabold bg-[#2E7D32] text-white shadow-3xs hover:opacity-95 active:scale-95 transition-all cursor-pointer"
-          >
-            Visualizar
-          </button>
-          <a
-            href={slide.sourceUrl}
-            download
-            onClick={(e) => e.stopPropagation()}
-            className="px-3.5 py-1.5 rounded-lg text-[10px] font-extrabold border border-[#2E7D32] text-[#2E7D32] hover:bg-green-50 transition-colors bg-white"
-          >
-            Baixar
-          </a>
-        </div>
-      </div>
-    );
   };
 
   return (
@@ -560,7 +548,8 @@ function FullscreenDocumentViewer({
   const [currentPage, setCurrentPage] = useState(0);
   const [numPages, setNumPages] = useState(0);
 
-  const totalSlides = isEmbeddedDocument ? 1 : (isPdf && numPages > 0 ? numPages : (hasSlideImages ? slide.slidesImg!.length : (hasFile ? 3 : 1)));
+  const isPptxLocal = hasFile && !isEmbeddedDocument && !isPdf && !hasSlideImages;
+  const totalSlides = isEmbeddedDocument ? 1 : (isPdf && numPages > 0 ? numPages : (hasSlideImages ? slide.slidesImg!.length : 1));
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -626,16 +615,34 @@ function FullscreenDocumentViewer({
       );
     }
 
-    // Default iframe PDF fallback
-    return (
-      <div className="w-full h-full p-2 bg-gray-800">
-        <iframe
-          src={`${slide.sourceUrl}#toolbar=1&navpanes=1&scrollbar=1`}
-          className="w-full h-full border-0 rounded-2xl bg-white shadow-2xl"
-          title={slide.titulo}
-        />
-      </div>
-    );
+    // PPTX local: fullscreen download card
+    if (isPptxLocal) {
+      return (
+        <div className="w-full h-full flex flex-col items-center justify-center gap-6 p-8 bg-gray-900">
+          <div className="w-20 h-20 flex items-center justify-center rounded-3xl bg-orange-500/10 border border-orange-500/20">
+            <i className="ri-slideshow-2-line text-4xl text-orange-400"></i>
+          </div>
+          <div className="text-center max-w-md">
+            <span className="text-[10px] font-bold px-3 py-1 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20 uppercase tracking-widest">
+              {slide.tipo === "PPT" ? "Apresentação PPTX" : slide.tipo || "Arquivo"}
+            </span>
+            <h3 className="text-white text-xl font-bold mt-3 leading-tight">{slide.titulo}</h3>
+            {slide.descricao && (
+              <p className="text-gray-400 text-sm mt-2 leading-relaxed">{slide.descricao}</p>
+            )}
+          </div>
+          <a
+            href={slide.sourceUrl}
+            download
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-extrabold bg-white text-gray-900 hover:bg-gray-100 transition-all shadow-lg active:scale-95"
+          >
+            <i className="ri-download-line text-base"></i> Baixar Apresentação
+          </a>
+        </div>
+      );
+    }
+
+    return null;
   };
 
   return (

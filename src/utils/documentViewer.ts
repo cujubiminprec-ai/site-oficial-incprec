@@ -103,7 +103,10 @@ export function getDocumentView(rawUrl?: string, delay: number = 5000): Document
   }
 
   if (isPresentation) {
-    const canUseOfficeViewer = /^https?:\/\//i.test(presentationEmbedSource) && !/^https?:\/\/(localhost|127\.0\.0\.1)(:|\/)/i.test(presentationEmbedSource);
+    // Locally-uploaded files (/uploads/...) are not reliably accessible by external services.
+    // Only use Office Online viewer for external HTTPS URLs (not same-origin uploads).
+    const isLocalUpload = /^\/uploads\//i.test(sourceUrl);
+    const canUseOfficeViewer = !isLocalUpload && /^https?:\/\//i.test(presentationEmbedSource) && !/^https?:\/\/(localhost|127\.0\.0\.1)(:|\/)/i.test(presentationEmbedSource);
     return {
       kind: "presentation",
       sourceUrl,

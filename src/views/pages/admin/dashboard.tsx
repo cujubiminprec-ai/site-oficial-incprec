@@ -2051,6 +2051,7 @@ function PainelTransparenciaTab() {
   const [uploadingSlides, setUploadingSlides] = useState(false);
   const [uploadSlidesErro, setUploadSlidesErro] = useState("");
   const slidesImagesInputRef = useRef<HTMLInputElement | null>(null);
+  const [quickUploadingId, setQuickUploadingId] = useState<number | null>(null);
 
   useEffect(() => {
     let ativo = true;
@@ -2173,6 +2174,33 @@ function PainelTransparenciaTab() {
     }
   };
 
+  const handleQuickUpload = async (slideId: number, file?: File) => {
+    if (!file) return;
+    setQuickUploadingId(slideId);
+    try {
+      const pasta = pastaPublicaPorArquivo("painel", file);
+      const uploaded = await uploadService.upload(file, pasta);
+      const alvo = slides.find((s) => s.id === slideId);
+      if (!alvo) return;
+      const salvo = await transparenciaService.salvarPainel({
+        ...alvo,
+        sourceUrl: uploaded.url,
+        embedUrl: uploaded.url,
+        tipo: inferDocumentType(uploaded.url) as PainelSlide["tipo"],
+        tamanho: formatFileSize(file.size),
+        dataAtualizacao: new Date().toISOString().split("T")[0],
+      });
+      setSlides((prev) => prev.map((s) => s.id === salvo.id ? salvo : s));
+      window.dispatchEvent(new Event("inprec-painel-transparencia-updated"));
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Erro no upload.");
+    } finally {
+      setQuickUploadingId(null);
+    }
+  };
+
   const blankSlide: PainelSlide = { id: 0, titulo: "", embedUrl: "", sourceUrl: "", tipo: "PDF", tamanho: "", ativo: true, ordem: slides.length + 1, descricao: "", dataAtualizacao: new Date().toISOString().split("T")[0], slidesImg: [] };
 
   return (
@@ -2192,7 +2220,33 @@ function PainelTransparenciaTab() {
         <input type="number" value={painelConfig.cardHeight || 320} onChange={(e) => setPainelConfig((prev) => ({ ...prev, cardHeight: parseInt(e.target.value || "320", 10) }))} className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm" placeholder="Altura" />
         <button onClick={() => void saveConfig()} className="py-2.5 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: config.primaryColor }}>Salvar Layout</button>
       </div>
-      {loading ? <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center text-gray-500">Carregando painel...</div> : <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">{slides.map((slide) => <div key={slide.id} className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3"><div className="flex items-start justify-between gap-3"><div><p className="text-sm font-bold text-gray-900">{slide.titulo}</p><p className="text-xs text-gray-400">Ordem #{slide.ordem} ? {slide.tipo || "PDF"}</p></div><span className={`text-xs px-2 py-1 rounded-full ${slide.ativo ? "bg-green-50 text-green-600" : "bg-gray-100 text-gray-400"}`}>{slide.ativo ? "Ativo" : "Inativo"}</span></div><p className="text-xs text-gray-500 line-clamp-2">{slide.descricao || "Sem descricao informada."}</p><div className="flex gap-2 flex-wrap"><button onClick={() => void toggleSlide(slide)} className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold">{slide.ativo ? "Desativar" : "Ativar"}</button><button onClick={() => setEditSlide(slide)} className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold">Editar</button><button onClick={() => void removeSlide(slide.id)} className="px-3 py-1.5 rounded-lg border border-red-100 text-red-500 text-xs font-semibold">Excluir</button></div></div>)}</div>}
+      {loading ? <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center text-gray-500">Carregando painel...</div> : <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">{slides.map((slide) => (
+              <div key={slide.id} className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-gray-900 truncate">{slide.titulo}</p>
+                    <p className="text-xs text-gray-400">Ordem #{slide.ordem} · {slide.tipo || "PDF"}</p>
+                  </div>
+                  <span className={`text-xs px-2 py-1 rounded-full flex-shrink-0 ${slide.ativo ? "bg-green-50 text-green-600" : "bg-gray-100 text-gray-400"}`}>{slide.ativo ? "Ativo" : "Inativo"}</span>
+                </div>
+                <p className="text-xs text-gray-500 line-clamp-2">{slide.descricao || "Sem descricao informada."}</p>
+                <div className="text-[10px] font-semibold">
+                  {slide.sourceUrl
+                    ? <span className="text-green-700 bg-green-50 px-2 py-0.5 rounded-full inline-flex items-center gap-1"><i className="ri-attachment-2-line"></i> Arquivo anexado</span>
+                    : <span className="text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full inline-flex items-center gap-1"><i className="ri-file-warning-line"></i> Sem arquivo</span>
+                  }
+                </div>
+                <div className="flex gap-2 flex-wrap items-center">
+                  <label className="px-3 py-1.5 rounded-lg border border-blue-200 text-blue-700 bg-blue-50 text-xs font-semibold cursor-pointer flex items-center gap-1 hover:bg-blue-100 transition-colors">
+                    {quickUploadingId === slide.id ? <span>Enviando...</span> : <><i className="ri-upload-2-line"></i> Enviar PPTX</>}
+                    <input type="file" accept=".pdf,.ppt,.pptx,.pps,.ppsx" className="hidden" disabled={quickUploadingId !== null} onChange={(e) => { void handleQuickUpload(slide.id, e.target.files?.[0]); e.target.value = ""; }} />
+                  </label>
+                  <button onClick={() => void toggleSlide(slide)} className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold hover:bg-gray-50">{slide.ativo ? "Desativar" : "Ativar"}</button>
+                  <button onClick={() => setEditSlide(slide)} className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold hover:bg-gray-50">Editar</button>
+                  <button onClick={() => void removeSlide(slide.id)} className="px-3 py-1.5 rounded-lg border border-red-100 text-red-500 text-xs font-semibold hover:bg-red-50">Excluir</button>
+                </div>
+              </div>
+            ))}</div>}
       {editSlide && <div className="fixed inset-0 z-[60] bg-black/40 flex items-center justify-center p-4"><div className="w-full max-w-3xl bg-white rounded-3xl border border-gray-100 overflow-hidden"><div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between"><h2 className="text-lg font-bold text-gray-900">{editSlide.id === 0 ? "Novo Card" : "Editar Card"}</h2><button onClick={() => setEditSlide(null)} className="w-9 h-9 rounded-xl hover:bg-gray-100"><i className="ri-close-line"></i></button></div><div className="p-6 grid md:grid-cols-2 gap-4 max-h-[80vh] overflow-auto"><div className="space-y-4"><input value={editSlide.titulo} onChange={(e) => setEditSlide((prev) => prev ? { ...prev, titulo: e.target.value } : prev)} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" placeholder="Titulo" /><textarea value={editSlide.descricao || ""} onChange={(e) => setEditSlide((prev) => prev ? { ...prev, descricao: e.target.value } : prev)} rows={3} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm resize-none" placeholder="Descricao" /><div className="grid grid-cols-2 gap-4"><select value={editSlide.tipo || "PDF"} onChange={(e) => setEditSlide((prev) => prev ? { ...prev, tipo: e.target.value as PainelSlide["tipo"] } : prev)} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white"><option value="PDF">PDF</option><option value="PPT">PPT</option><option value="LINK">LINK</option></select><input type="number" value={editSlide.ordem} onChange={(e) => setEditSlide((prev) => prev ? { ...prev, ordem: parseInt(e.target.value || "1", 10) } : prev)} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" /></div><label className="flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" checked={editSlide.ativo} onChange={(e) => setEditSlide((prev) => prev ? { ...prev, ativo: e.target.checked } : prev)} /> Exibir no site</label></div><div className="space-y-4"><div className="rounded-2xl border border-dashed border-gray-200 p-4"><input ref={painelFileInputRef} type="file" accept=".pdf,.ppt,.pptx,.pps,.ppsx" className="hidden" onChange={(e) => void handlePainelFileUpload(e.target.files?.[0])} /><button onClick={() => painelFileInputRef.current?.click()} className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm font-semibold">{uploadingPainel ? "Enviando arquivo..." : "Enviar PDF/PPT"}</button>{editSlide.sourceUrl && <p className="mt-2 text-xs text-gray-500 break-all">Arquivo: {editSlide.sourceUrl}</p>}{uploadPainelInfo && <p className="mt-2 text-xs text-green-600">{uploadPainelInfo}</p>}{uploadPainelErro && <p className="mt-2 text-xs text-red-500">{uploadPainelErro}</p>}</div><div className="rounded-2xl border border-dashed border-gray-200 p-4 space-y-2"><label className="text-xs font-bold text-gray-600">Link do Google Slides ou Drive</label><input type="url" value={editSlide.sourceUrl || ""} onChange={(e) => { const url = e.target.value; setEditSlide((prev) => prev ? { ...prev, sourceUrl: url, embedUrl: url, tipo: inferDocumentType(url), tamanho: url ? "Link externo" : prev.tamanho, dataAtualizacao: new Date().toISOString().split("T")[0] } : prev); }} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" placeholder="https://docs.google.com/presentation/d/... ou https://drive.google.com/..." /><p className="text-[11px] text-gray-400 leading-relaxed">Cole aqui o link compartilhado da apresentação. Links do Google Slides abrem incorporados no site.</p></div><div className="rounded-2xl border border-dashed border-gray-200 p-4"><input ref={slidesImagesInputRef} type="file" multiple accept="image/*" className="hidden" onChange={(e) => void handleMultipleSlidesUpload(e.target.files)} /><button onClick={() => slidesImagesInputRef.current?.click()} className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm font-semibold">{uploadingSlides ? "Enviando imagens..." : "Adicionar imagens dos slides"}</button>{uploadSlidesErro && <p className="mt-2 text-xs text-red-500">{uploadSlidesErro}</p>}<div className="mt-3 grid grid-cols-3 gap-2">{(editSlide.slidesImg || []).map((img, index) => <div key={img + index} className="relative rounded-xl overflow-hidden border border-gray-100"><img src={img} alt={`Slide ${index + 1}`} className="w-full h-20 object-cover" /><button onClick={() => setEditSlide((prev) => prev ? { ...prev, slidesImg: (prev.slidesImg || []).filter((_, idx) => idx !== index) } : prev)} className="absolute top-1 right-1 w-6 h-6 rounded-full bg-white/90 text-red-500"><i className="ri-close-line"></i></button></div>)}</div></div></div></div><div className="px-6 py-4 border-t border-gray-100 flex gap-3"><button onClick={() => setEditSlide(null)} className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600">Cancelar</button><button onClick={() => void saveSlide()} className="flex-1 py-3 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: config.primaryColor }}>Salvar Card</button></div></div></div>}
     </div>
   );
