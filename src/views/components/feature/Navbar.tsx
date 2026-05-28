@@ -4,6 +4,7 @@ import { useSiteConfig } from "@/contexts/SiteConfigContext";
 import { MenuItem, defaultMenuItems } from "@/pages/admin/tabs/MenuNavegacaoTab";
 import { menuService } from "@/services/menu.service";
 import ProGestaoBadge, { hasProGestaoLocation } from "@/components/feature/ProGestaoBadge";
+import SearchOverlay from "@/components/feature/SearchOverlay";
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -11,6 +12,7 @@ export default function Navbar() {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [mobileExpanded, setMobileExpanded] = useState<string | null>(null);
   const [navItems, setNavItems] = useState<MenuItem[]>(() => defaultMenuItems.filter((m) => m.ativo));
+  const [searchOpen, setSearchOpen] = useState(false);
   const location = useLocation();
   const { config } = useSiteConfig();
   const contrachequeUrl = config.contrachequeUrl || "";
@@ -47,6 +49,18 @@ export default function Navbar() {
     setActiveDropdown(null);
     setMegaOpen(false);
   }, [location]);
+
+  // Ctrl+K / Cmd+K abre a busca
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        e.preventDefault();
+        setSearchOpen((o) => !o);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   const handleMouseEnter = (label: string) => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -130,6 +144,7 @@ export default function Navbar() {
       config.topbarMapaSiteVisivel);
 
   return (
+    <>
     <header
       className={`fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b transition-all duration-500 ${
         scrolled ? "border-gray-100 shadow-[0_4px_18px_rgba(0,0,0,0.08)]" : "border-white/70 shadow-[0_4px_18px_rgba(0,0,0,0.06)]"
@@ -555,6 +570,22 @@ export default function Navbar() {
 
         {/* Botões direita desktop */}
         <div className="hidden xl:flex items-center gap-2 flex-shrink-0">
+          {/* Botão Pesquisar */}
+          <button
+            onClick={() => setSearchOpen(true)}
+            className="flex items-center gap-2 px-3 py-2.5 rounded-full text-[13px] font-semibold transition-all duration-200 cursor-pointer border"
+            style={{ borderColor: "#E5E7EB", color: "#6B7280", backgroundColor: "white" }}
+            title="Pesquisar (Ctrl+K)"
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = config.primaryColor; (e.currentTarget as HTMLButtonElement).style.color = config.primaryColor; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "#E5E7EB"; (e.currentTarget as HTMLButtonElement).style.color = "#6B7280"; }}
+          >
+            <i className="ri-search-line text-sm"></i>
+            <span className="hidden 2xl:inline">Pesquisar</span>
+            <kbd className="hidden 2xl:flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-gray-100 text-gray-400 text-[10px] font-mono ml-1">
+              Ctrl K
+            </kbd>
+          </button>
+
           <Link
             to="/admin/login"
             className="flex items-center gap-1.5 px-4 py-2.5 rounded-full text-xs font-bold whitespace-nowrap cursor-pointer transition-all duration-300 border shadow-sm"
@@ -575,8 +606,16 @@ export default function Navbar() {
           </Link>
         </div>
 
-        {/* Mobile: Hamburger */}
-        <div className="xl:hidden flex items-center gap-2">
+        {/* Mobile: Busca + Hamburger */}
+        <div className="xl:hidden flex items-center gap-1">
+          <button
+            className="w-10 h-10 flex items-center justify-center rounded-lg cursor-pointer transition-colors"
+            style={{ color: config.primaryColor }}
+            onClick={() => setSearchOpen(true)}
+            aria-label="Pesquisar"
+          >
+            <i className="ri-search-line text-xl"></i>
+          </button>
           <button
             className="w-10 h-10 flex items-center justify-center rounded-lg text-[#243041] hover:bg-[#eaf7ef] cursor-pointer transition-colors"
             onClick={() => setMenuOpen(!menuOpen)}
@@ -677,5 +716,8 @@ export default function Navbar() {
         </div>
       </div>
     </header>
+
+    <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
+    </>
   );
 }

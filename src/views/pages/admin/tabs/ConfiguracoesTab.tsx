@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useSiteConfig, SiteConfig } from "@/contexts/SiteConfigContext";
-import { configuracoesService, type PrevidenciaStats, previdenciaStatsDefault } from "@/services/configuracoes.service";
+import { configuracoesService, type PrevidenciaStats, previdenciaStatsDefault, type ProgestaoIndicadores, progestaoIndicadoresDefault } from "@/services/configuracoes.service";
 
 export default function ConfiguracoesTab() {
   const { config, updateConfig } = useSiteConfig();
@@ -37,6 +37,33 @@ export default function ConfiguracoesTab() {
 
   const updPrevStat = (i: number, field: "value" | "label", val: string) => {
     setPrevStats((prev) => ({
+      ...prev,
+      itens: prev.itens.map((item, idx) => idx === i ? { ...item, [field]: val } : item),
+    }));
+  };
+
+  // ── Indicadores Pró-Gestão ───────────────────────────────────────────────
+  const [pgInd, setPgInd] = useState<ProgestaoIndicadores>(progestaoIndicadoresDefault);
+  const [pgIndSaved, setPgIndSaved] = useState(false);
+  const [pgIndSaving, setPgIndSaving] = useState(false);
+
+  useEffect(() => {
+    configuracoesService.obterProgestaoIndicadores().then(setPgInd).catch(() => {});
+  }, []);
+
+  const handleSavePgInd = async () => {
+    setPgIndSaving(true);
+    try {
+      await configuracoesService.salvarProgestaoIndicadores(pgInd);
+      setPgIndSaved(true);
+      setTimeout(() => setPgIndSaved(false), 2500);
+    } finally {
+      setPgIndSaving(false);
+    }
+  };
+
+  const updPgInd = (i: number, field: "valor" | "desc", val: string) => {
+    setPgInd((prev) => ({
       ...prev,
       itens: prev.itens.map((item, idx) => idx === i ? { ...item, [field]: val } : item),
     }));
@@ -975,6 +1002,85 @@ export default function ConfiguracoesTab() {
           >
             {prevStatsSaving ? <i className="ri-loader-4-line animate-spin"></i> : <i className="ri-save-line"></i>}
             {prevStatsSaving ? "Salvando..." : "Salvar Estatísticas"}
+          </button>
+        </div>
+
+        {/* ── Indicadores · Pró-Gestão RPPS ──────────────────────────────── */}
+        <div className="rounded-2xl border border-gray-100 bg-white p-6">
+          <div className="flex items-start justify-between mb-5">
+            <div>
+              <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                <i className="ri-medal-2-line" style={{ color: config.primaryColor }}></i>
+                Indicadores · Pró-Gestão RPPS
+              </h2>
+              <p className="text-xs text-gray-400 mt-1">
+                Alíquotas, segurados e benefícios exibidos na página Pró-Gestão. Deixe em branco para não exibir o indicador.
+              </p>
+            </div>
+            <div
+              className="flex items-center gap-3 cursor-pointer p-2.5 rounded-xl bg-gray-50 flex-shrink-0"
+              onClick={() => setPgInd((p) => ({ ...p, ativo: !p.ativo }))}
+            >
+              <div
+                className="w-11 h-6 rounded-full relative transition-all flex-shrink-0"
+                style={{ backgroundColor: pgInd.ativo ? "#059669" : "#E5E7EB" }}
+              >
+                <div
+                  className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all shadow"
+                  style={{ left: pgInd.ativo ? "calc(100% - 22px)" : "2px" }}
+                />
+              </div>
+              <span className="text-xs font-semibold" style={{ color: pgInd.ativo ? "#059669" : "#9CA3AF" }}>
+                {pgInd.ativo ? "Ativo no site" : "Oculto no site"}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3 mb-5">
+            {pgInd.itens.map((item, i) => (
+              <div key={i} className="grid grid-cols-[auto_1fr_1fr] items-center gap-3 p-3 rounded-xl border border-gray-100 bg-gray-50">
+                <div
+                  className="w-9 h-9 flex items-center justify-center rounded-xl flex-shrink-0"
+                  style={{ backgroundColor: `${config.primaryColor}15` }}
+                >
+                  <i className={`${item.icone} text-base`} style={{ color: config.primaryColor }}></i>
+                </div>
+                <div>
+                  <label className="text-[10px] font-semibold text-gray-500 mb-1 block">{item.label}</label>
+                  <input
+                    value={item.valor}
+                    onChange={(e) => updPgInd(i, "valor", e.target.value)}
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-bold focus:outline-none bg-white"
+                    placeholder="Ex: 22,00%"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-semibold text-gray-500 mb-1 block">Subtítulo</label>
+                  <input
+                    value={item.desc}
+                    onChange={(e) => updPgInd(i, "desc", e.target.value)}
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none bg-white"
+                    placeholder="Ex: Contribuição do Município"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {pgIndSaved && (
+            <p className="text-xs text-green-600 flex items-center gap-1 mb-3">
+              <i className="ri-check-line"></i> Indicadores salvos!
+            </p>
+          )}
+
+          <button
+            onClick={handleSavePgInd}
+            disabled={pgIndSaving}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-50"
+            style={{ backgroundColor: config.primaryColor }}
+          >
+            {pgIndSaving ? <i className="ri-loader-4-line animate-spin"></i> : <i className="ri-save-line"></i>}
+            {pgIndSaving ? "Salvando..." : "Salvar Indicadores"}
           </button>
         </div>
 

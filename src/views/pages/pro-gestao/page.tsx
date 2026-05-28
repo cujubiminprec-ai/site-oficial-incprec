@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import PageLayout from "@/components/feature/PageLayout";
 import { useSiteConfig } from "@/contexts/SiteConfigContext";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
+import { transparenciaService } from "@/services/transparencia.service";
+import { configuracoesService, type ProgestaoIndicadores, progestaoIndicadoresDefault } from "@/services/configuracoes.service";
+import type { DocumentoTransparencia } from "@/mocks/transparencia-docs";
 
 const PDF_URL = "https://storage.readdy-site.link/project_files/a27c3a2e-8a1c-41d2-b54e-de8d633f75ff/ff6c1eff-7d43-4aad-8d19-d2e90758372f_Cujubim_RPPS---Verso-3.6.pdf?v=716988d4da84295e4fb63bec7ac35326";
 
@@ -62,21 +65,6 @@ const FASES = [
   },
 ];
 
-const INDICADORES = [
-  { label: "Alíquota Patronal", valor: "22,00%", icone: "ri-percent-line", desc: "Contribuição do Município" },
-  { label: "Alíquota Servidor", valor: "14,00%", icone: "ri-user-line", desc: "Contribuição do Servidor" },
-  { label: "Segurados Ativos", valor: "856", icone: "ri-team-line", desc: "Servidores vinculados" },
-  { label: "Aposentados/Pensões", valor: "142", icone: "ri-shield-check-line", desc: "Benefícios em manutenção" },
-];
-
-const DOCUMENTOS_PROG = [
-  { titulo: "Política de Investimentos 2024", tipo: "PDF", icone: "ri-file-chart-line", ano: "2024" },
-  { titulo: "Avaliação Atuarial 2023 – DRAA", tipo: "PDF", icone: "ri-calculator-line", ano: "2023" },
-  { titulo: "Demonstrativo Financeiro 2023", tipo: "PDF", icone: "ri-bar-chart-box-line", ano: "2023" },
-  { titulo: "Relatório Anual do Comitê de Invest.", tipo: "PDF", icone: "ri-funds-line", ano: "2024" },
-  { titulo: "Plano de Capacitação 2024–2025", tipo: "PDF", icone: "ri-book-open-line", ano: "2024" },
-  { titulo: "Normas e Procedimentos Admin.", tipo: "PDF", icone: "ri-file-list-3-line", ano: "2024" },
-];
 
 const STATUS_CONFIG = {
   concluido: { label: "Concluído", color: "bg-green-100 text-green-700", icon: "ri-checkbox-circle-line text-green-500" },
@@ -92,6 +80,42 @@ export default function ProGestaoPage() {
   const { ref: statsRef, isVisible: statsVis } = useScrollAnimation();
   const { ref: fasesRef, isVisible: fasesVis } = useScrollAnimation();
   const { ref: docsRef, isVisible: docsVis } = useScrollAnimation();
+
+  const [indicadores, setIndicadores] = useState<ProgestaoIndicadores>(progestaoIndicadoresDefault);
+  const [documentos, setDocumentos] = useState<DocumentoTransparencia[]>([]);
+  const [docsCarregando, setDocsCarregando] = useState(true);
+
+  useEffect(() => {
+    configuracoesService.obterProgestaoIndicadores().then(setIndicadores).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    setDocsCarregando(true);
+    transparenciaService.listarDocumentos()
+      .then((lista) => {
+        const ativos = (lista as Partial<DocumentoTransparencia>[])
+          .filter((d) => d.ativo !== false && !!d.link)
+          .map((d) => ({
+            id: Number(d.id || 0),
+            titulo: d.titulo || "",
+            descricao: d.descricao || "",
+            secao: (d.secao || "primario") as DocumentoTransparencia["secao"],
+            menu: d.menu || "",
+            categoria: d.categoria || "",
+            ano: Number(d.ano || new Date().getFullYear()),
+            tamanho: d.tamanho || "",
+            tipo: d.tipo || "PDF",
+            data: d.data || new Date().toISOString().split("T")[0],
+            icone: d.icone || "ri-file-pdf-line",
+            link: d.link || "",
+            arquivoNome: d.arquivoNome || "",
+            ativo: d.ativo !== false,
+          } as DocumentoTransparencia));
+        setDocumentos(ativos.slice(0, 6));
+      })
+      .catch(() => setDocumentos([]))
+      .finally(() => setDocsCarregando(false));
+  }, []);
 
   const concluidas = FASES.filter((f) => f.status === "concluido").length;
   const progresso = Math.round((concluidas / FASES.length) * 100);
@@ -224,14 +248,15 @@ export default function ProGestaoPage() {
         </div>
       </section>
 
-      {/* ── INDICADORES DO RPPS ── */}
+      {/* ── INDICADORES DO RPPS — somente quando ativados pelo admin ── */}
+      {indicadores.ativo && indicadores.itens.some((i) => i.valor) && (
       <section
         ref={statsRef}
         className={`py-10 px-4 transition-all duration-700 delay-100 ${statsVis ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}
       >
         <div className="max-w-screen-xl mx-auto">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            {INDICADORES.map((ind) => (
+            {indicadores.itens.filter((ind) => ind.valor).map((ind) => (
               <div key={ind.label} className="bg-white rounded-2xl border border-gray-100 p-5 text-center">
                 <div className="w-10 h-10 flex items-center justify-center rounded-xl mx-auto mb-3" style={{ backgroundColor: `${config.primaryColor}12` }}>
                   <i className={`${ind.icone} text-lg`} style={{ color: config.primaryColor }}></i>
@@ -270,6 +295,7 @@ export default function ProGestaoPage() {
           </div>
         </div>
       </section>
+      )}
 
       {/* ── O QUE É O PRÓ-GESTÃO ── */}
       <section className="py-10 px-4" style={{ backgroundColor: `${config.primaryColor}06` }}>
@@ -412,29 +438,46 @@ export default function ProGestaoPage() {
               Ver Versão 3.6
             </button>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {DOCUMENTOS_PROG.map((doc) => (
-              <div key={doc.titulo} className="bg-white rounded-2xl border border-gray-100 p-5 flex items-center gap-4">
-                <div className="w-11 h-11 flex items-center justify-center rounded-xl flex-shrink-0" style={{ backgroundColor: `${config.primaryColor}12` }}>
-                  <i className={`${doc.icone} text-lg`} style={{ color: config.primaryColor }}></i>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900 leading-snug">{doc.titulo}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-50 text-red-500 font-bold">{doc.tipo}</span>
-                    <span className="text-[10px] text-gray-400">{doc.ano}</span>
+          {docsCarregando ? (
+            <div className="flex items-center justify-center py-12 text-gray-400 text-sm gap-2">
+              <i className="ri-loader-4-line animate-spin"></i> Carregando documentos...
+            </div>
+          ) : documentos.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-10 text-center">
+              <i className="ri-file-text-line text-4xl text-gray-200 block mb-3"></i>
+              <p className="text-sm font-semibold text-gray-400">Nenhum documento publicado ainda.</p>
+              <p className="text-xs text-gray-300 mt-1">Acesse Admin → Transparência para publicar documentos do Pró-Gestão.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {documentos.map((doc) => (
+                <div key={doc.id} className="bg-white rounded-2xl border border-gray-100 p-5 flex items-center gap-4">
+                  <div className="w-11 h-11 flex items-center justify-center rounded-xl flex-shrink-0" style={{ backgroundColor: `${config.primaryColor}12` }}>
+                    <i className={`${doc.icone || "ri-file-pdf-line"} text-lg`} style={{ color: config.primaryColor }}></i>
                   </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 leading-snug line-clamp-2">{doc.titulo}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-50 text-red-500 font-bold">{doc.tipo}</span>
+                      <span className="text-[10px] text-gray-400">{doc.ano}</span>
+                    </div>
+                  </div>
+                  {doc.link ? (
+                    <a
+                      href={doc.link}
+                      target="_blank"
+                      rel="nofollow noopener noreferrer"
+                      className="w-8 h-8 flex items-center justify-center rounded-lg cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0"
+                      style={{ backgroundColor: `${config.primaryColor}12` }}
+                      title="Abrir documento"
+                    >
+                      <i className="ri-external-link-line text-sm" style={{ color: config.primaryColor }}></i>
+                    </a>
+                  ) : null}
                 </div>
-                <button
-                  onClick={() => setShowPdf(true)}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0"
-                  style={{ backgroundColor: `${config.primaryColor}12` }}
-                >
-                  <i className="ri-eye-line text-sm" style={{ color: config.primaryColor }}></i>
-                </button>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

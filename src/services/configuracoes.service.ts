@@ -24,6 +24,28 @@ export const previdenciaStatsDefault: PrevidenciaStats = {
   ],
 };
 
+export interface ProgestaoIndicadorItem {
+  label: string;
+  valor: string;
+  icone: string;
+  desc: string;
+}
+
+export interface ProgestaoIndicadores {
+  ativo: boolean;
+  itens: ProgestaoIndicadorItem[];
+}
+
+export const progestaoIndicadoresDefault: ProgestaoIndicadores = {
+  ativo: false,
+  itens: [
+    { label: "Alíquota Patronal", valor: "", icone: "ri-percent-line", desc: "Contribuição do Município" },
+    { label: "Alíquota Servidor", valor: "", icone: "ri-user-line", desc: "Contribuição do Servidor" },
+    { label: "Segurados Ativos", valor: "", icone: "ri-team-line", desc: "Servidores vinculados" },
+    { label: "Aposentados/Pensões", valor: "", icone: "ri-shield-check-line", desc: "Benefícios em manutenção" },
+  ],
+};
+
 export interface SiteConfigApi {
   primaryColor: string;
   secondaryColor: string;
@@ -342,6 +364,19 @@ export const configuracoesService = {
     return apiFetch<PrevidenciaStats>("/configuracoes/app/previdencia_stats", {
       method: "PUT",
       body: stats,
+      token,
+    });
+  },
+
+  async obterProgestaoIndicadores(): Promise<ProgestaoIndicadores> {
+    return apiFetch<ProgestaoIndicadores>("/configuracoes/app/progestao_indicadores").catch(() => progestaoIndicadoresDefault);
+  },
+
+  async salvarProgestaoIndicadores(indicadores: ProgestaoIndicadores): Promise<ProgestaoIndicadores> {
+    const token = getToken();
+    return apiFetch<ProgestaoIndicadores>("/configuracoes/app/progestao_indicadores", {
+      method: "PUT",
+      body: indicadores,
       token,
     });
   },
