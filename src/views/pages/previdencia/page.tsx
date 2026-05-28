@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PageLayout from "@/components/feature/PageLayout";
 import SimuladorAposentadoria from "@/pages/previdencia/components/SimuladorAposentadoria";
 import RequerimentosSection from "@/pages/previdencia/components/RequerimentosSection";
 import InfoPrevidenciaSection from "@/pages/previdencia/components/InfoPrevidenciaSection";
 import { useSiteConfig } from "@/contexts/SiteConfigContext";
+import { configuracoesService, type PrevidenciaStats } from "@/services/configuracoes.service";
 
 const tabs = [
   { id: "simulador", label: "Simulador de Aposentadoria", icon: "ri-calculator-line" },
@@ -14,6 +15,11 @@ const tabs = [
 export default function PrevidenciaPage() {
   const [activeTab, setActiveTab] = useState("simulador");
   const { config } = useSiteConfig();
+  const [stats, setStats] = useState<PrevidenciaStats | null>(null);
+
+  useEffect(() => {
+    configuracoesService.obterPrevidenciaStats().then(setStats).catch(() => {});
+  }, []);
 
   return (
     <PageLayout>
@@ -38,23 +44,20 @@ export default function PrevidenciaPage() {
             Simule sua aposentadoria, acesse formulários de requerimento e tire dúvidas sobre seus benefícios previdenciários.
           </p>
 
-          {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-10">
-            {[
-              { value: "12.480", label: "Servidores Ativos", icon: "ri-user-line" },
-              { value: "3.240", label: "Aposentados", icon: "ri-user-star-line" },
-              { value: "98.5%", label: "Índice de Satisfação", icon: "ri-star-line" },
-              { value: "R$ 2,1B", label: "Patrimônio do Fundo", icon: "ri-money-dollar-circle-line" },
-            ].map((s) => (
-              <div key={s.label} className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
-                <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/20 mb-2">
-                  <i className={`${s.icon} text-white text-sm`}></i>
+          {/* Stats — visíveis apenas quando ativados pelo admin */}
+          {stats?.ativo && stats.itens.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-10">
+              {stats.itens.map((s) => (
+                <div key={s.label} className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
+                  <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/20 mb-2">
+                    <i className={`${s.icon} text-white text-sm`}></i>
+                  </div>
+                  <p className="text-white font-bold text-xl" style={{ fontFamily: "'Poppins', sans-serif" }}>{s.value}</p>
+                  <p className="text-white/60 text-xs">{s.label}</p>
                 </div>
-                <p className="text-white font-bold text-xl" style={{ fontFamily: "'Poppins', sans-serif" }}>{s.value}</p>
-                <p className="text-white/60 text-xs">{s.label}</p>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

@@ -1,5 +1,6 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useSiteConfig, SiteConfig } from "@/contexts/SiteConfigContext";
+import { configuracoesService, type PrevidenciaStats, previdenciaStatsDefault } from "@/services/configuracoes.service";
 
 export default function ConfiguracoesTab() {
   const { config, updateConfig } = useSiteConfig();
@@ -13,6 +14,33 @@ export default function ConfiguracoesTab() {
   const [logoUploading, setLogoUploading] = useState(false);
   const [sloganUploading, setSloganUploading] = useState(false);
   const [progestaoUploading, setProgestaoUploading] = useState(false);
+
+  // ── Estatísticas do Portal de Previdência ────────────────────────────────
+  const [prevStats, setPrevStats] = useState<PrevidenciaStats>(previdenciaStatsDefault);
+  const [prevStatsSaved, setPrevStatsSaved] = useState(false);
+  const [prevStatsSaving, setPrevStatsSaving] = useState(false);
+
+  useEffect(() => {
+    configuracoesService.obterPrevidenciaStats().then(setPrevStats).catch(() => {});
+  }, []);
+
+  const handleSavePrevStats = async () => {
+    setPrevStatsSaving(true);
+    try {
+      await configuracoesService.salvarPrevidenciaStats(prevStats);
+      setPrevStatsSaved(true);
+      setTimeout(() => setPrevStatsSaved(false), 2500);
+    } finally {
+      setPrevStatsSaving(false);
+    }
+  };
+
+  const updPrevStat = (i: number, field: "value" | "label", val: string) => {
+    setPrevStats((prev) => ({
+      ...prev,
+      itens: prev.itens.map((item, idx) => idx === i ? { ...item, [field]: val } : item),
+    }));
+  };
 
   const readFileAsDataURL = useCallback((file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -869,6 +897,85 @@ export default function ConfiguracoesTab() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* ── Estatísticas · Portal de Previdência ───────────────────────── */}
+        <div className="rounded-2xl border border-gray-100 bg-white p-6">
+          <div className="flex items-start justify-between mb-5">
+            <div>
+              <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                <i className="ri-bar-chart-box-line" style={{ color: config.primaryColor }}></i>
+                Estatísticas · Portal de Previdência
+              </h2>
+              <p className="text-xs text-gray-400 mt-1">
+                Números exibidos no hero da página Previdência. Ative quando os dados estiverem corretos.
+              </p>
+            </div>
+            <div
+              className="flex items-center gap-3 cursor-pointer p-2.5 rounded-xl bg-gray-50 flex-shrink-0"
+              onClick={() => setPrevStats((p) => ({ ...p, ativo: !p.ativo }))}
+            >
+              <div
+                className="w-11 h-6 rounded-full relative transition-all flex-shrink-0"
+                style={{ backgroundColor: prevStats.ativo ? "#059669" : "#E5E7EB" }}
+              >
+                <div
+                  className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all shadow"
+                  style={{ left: prevStats.ativo ? "calc(100% - 22px)" : "2px" }}
+                />
+              </div>
+              <span className="text-xs font-semibold" style={{ color: prevStats.ativo ? "#059669" : "#9CA3AF" }}>
+                {prevStats.ativo ? "Ativo no site" : "Oculto no site"}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3 mb-5">
+            {prevStats.itens.map((item, i) => (
+              <div key={i} className="grid grid-cols-[auto_1fr_1fr] items-center gap-3 p-3 rounded-xl border border-gray-100 bg-gray-50">
+                <div
+                  className="w-9 h-9 flex items-center justify-center rounded-xl flex-shrink-0"
+                  style={{ backgroundColor: `${config.primaryColor}15` }}
+                >
+                  <i className={`${item.icon} text-base`} style={{ color: config.primaryColor }}></i>
+                </div>
+                <div>
+                  <label className="text-[10px] font-semibold text-gray-500 mb-1 block">Valor</label>
+                  <input
+                    value={item.value}
+                    onChange={(e) => updPrevStat(i, "value", e.target.value)}
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-bold focus:outline-none bg-white"
+                    placeholder="Ex: 12.480"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-semibold text-gray-500 mb-1 block">Rótulo</label>
+                  <input
+                    value={item.label}
+                    onChange={(e) => updPrevStat(i, "label", e.target.value)}
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none bg-white"
+                    placeholder="Ex: Servidores Ativos"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {prevStatsSaved && (
+            <p className="text-xs text-green-600 flex items-center gap-1 mb-3">
+              <i className="ri-check-line"></i> Estatísticas salvas com sucesso!
+            </p>
+          )}
+
+          <button
+            onClick={handleSavePrevStats}
+            disabled={prevStatsSaving}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-50"
+            style={{ backgroundColor: config.primaryColor }}
+          >
+            {prevStatsSaving ? <i className="ri-loader-4-line animate-spin"></i> : <i className="ri-save-line"></i>}
+            {prevStatsSaving ? "Salvando..." : "Salvar Estatísticas"}
+          </button>
         </div>
 
         <button

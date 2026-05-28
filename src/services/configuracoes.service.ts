@@ -3,6 +3,27 @@ import type { BannerAvisoConfig } from "@/components/feature/BannerAviso";
 import type { FloatingButtonConfig } from "@/mocks/floating-buttons";
 import type { HomeSectionConfig } from "@/mocks/home-sections";
 
+export interface PrevidenciaStatItem {
+  value: string;
+  label: string;
+  icon: string;
+}
+
+export interface PrevidenciaStats {
+  ativo: boolean;
+  itens: PrevidenciaStatItem[];
+}
+
+export const previdenciaStatsDefault: PrevidenciaStats = {
+  ativo: false,
+  itens: [
+    { value: "12.480", label: "Servidores Ativos", icon: "ri-user-line" },
+    { value: "3.240", label: "Aposentados", icon: "ri-user-star-line" },
+    { value: "98.5%", label: "Índice de Satisfação", icon: "ri-star-line" },
+    { value: "R$ 2,1B", label: "Patrimônio do Fundo", icon: "ri-money-dollar-circle-line" },
+  ],
+};
+
 export interface SiteConfigApi {
   primaryColor: string;
   secondaryColor: string;
@@ -310,5 +331,18 @@ export const configuracoesService = {
   async deletarBanner(id: string): Promise<void> {
     const token = getToken();
     return apiFetch<void>(`/configuracoes/banners/${id}`, { method: "DELETE", token });
+  },
+
+  async obterPrevidenciaStats(): Promise<PrevidenciaStats> {
+    return apiFetch<PrevidenciaStats>("/configuracoes/app/previdencia_stats").catch(() => previdenciaStatsDefault);
+  },
+
+  async salvarPrevidenciaStats(stats: PrevidenciaStats): Promise<PrevidenciaStats> {
+    const token = getToken();
+    return apiFetch<PrevidenciaStats>("/configuracoes/app/previdencia_stats", {
+      method: "PUT",
+      body: stats,
+      token,
+    });
   },
 };
