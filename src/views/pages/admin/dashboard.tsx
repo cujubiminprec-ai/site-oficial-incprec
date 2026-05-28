@@ -35,6 +35,7 @@ import AtendimentoAdminTab from "@/pages/admin/tabs/AtendimentoAdminTab";
 import ProtocolosAtendimentoTab from "@/pages/admin/tabs/ProtocolosAtendimentoTab";
 import ChatAdminTab from "@/pages/admin/tabs/ChatAdminTab";
 import NotificacoesDrawer from "@/components/feature/NotificacoesDrawer";
+import ChatAdminFloating from "@/components/feature/ChatAdminFloating";
 import { useNotificacoes } from "@/contexts/NotificacoesContext";
 import { ApiError } from "@/services/api";
 import { uploadService } from "@/services/upload.service";
@@ -44,6 +45,7 @@ import { configuracoesService } from "@/services/configuracoes.service";
 import { getDocumentView, inferDocumentType } from "@/utils/documentViewer";
 import { arquivoPermitidoDocumento, pastaPublicaPorArquivo, tipoArquivo, extensaoArquivo } from "@/utils/uploadFolders";
 import { gestoresService } from "@/services/gestores.service";
+import { chatService } from "@/services/chat.service";
 
 const ALL_MENU_ITEMS = [
   { id: "dashboard", icon: "ri-dashboard-line", label: "Dashboard", perm: "dashboard" },
@@ -88,6 +90,20 @@ function AdminLayout({ children, activeTab, setActiveTab }: { children: ReactNod
   const [showPerfilMenu, setShowPerfilMenu] = useState(false);
   const [drawerAberto, setDrawerAberto] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [chatPendentes, setChatPendentes] = useState(0);
+
+  useEffect(() => {
+    if (!temPermissao("chat-admin")) return;
+    const poll = async () => {
+      try {
+        const lista = await chatService.listarAdmin();
+        setChatPendentes(lista.filter((c) => c.status === "aberta" || c.status === "em-atendimento").length);
+      } catch { /* silencioso */ }
+    };
+    void poll();
+    const id = setInterval(() => void poll(), 30000);
+    return () => clearInterval(id);
+  }, [temPermissao]);
 
   const menuFiltrado = ALL_MENU_ITEMS.filter(item => temPermissao(item.perm as Parameters<typeof temPermissao>[0]));
 
@@ -210,7 +226,8 @@ function AdminLayout({ children, activeTab, setActiveTab }: { children: ReactNod
         <nav className="flex-1 p-3 flex flex-col gap-0.5 overflow-y-auto">
           {menuFiltrado.map((item) => {
             const notifCount =
-              item.id === "ouvidoria-admin" ? naoLidasPorTipo("ouvidoria")
+              item.id === "chat-admin" ? chatPendentes
+              : item.id === "ouvidoria-admin" ? naoLidasPorTipo("ouvidoria")
               : item.id === "lai-admin" ? naoLidasPorTipo("lai")
               : item.id === "contato-admin" ? naoLidasPorTipo("contato")
               : item.id === "pesquisa-admin" ? naoLidasPorTipo("pesquisa")
@@ -297,6 +314,9 @@ function AdminLayout({ children, activeTab, setActiveTab }: { children: ReactNod
         onNavigate={(tab) => { setActiveTab(tab); }}
         primaryColor={config.primaryColor}
       />
+
+      {/* Botão flutuante de Chat Online */}
+      <ChatAdminFloating setActiveTab={setActiveTab} />
     </div>
   );
 }

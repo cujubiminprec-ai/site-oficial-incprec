@@ -41,7 +41,11 @@ export default function ChatAdminTab() {
     }
   };
 
-  useEffect(() => { void carregar(); }, []);
+  useEffect(() => {
+    void carregar();
+    const id = setInterval(() => void carregar(), 30000);
+    return () => clearInterval(id);
+  }, []);
 
   const filtradas = useMemo(() => conversas.filter((c) => filtro === "todos" || c.status === filtro), [conversas, filtro]);
   const stats = useMemo(() => [
