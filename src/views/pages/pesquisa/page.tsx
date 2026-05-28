@@ -2,7 +2,17 @@
 import PageLayout from "@/components/feature/PageLayout";
 import { useSiteConfig } from "@/contexts/SiteConfigContext";
 import { useScrollAnimation, animClass } from "@/hooks/useScrollAnimation";
-import { pesquisaService } from "@/services/pesquisa.service";
+import { pesquisaService, PesquisaResumo } from "@/services/pesquisa.service";
+
+const CRITERIO_LABELS: Record<string, string> = {
+  atendimento: "Qualidade do Atendimento",
+  servicos: "Qualidade dos Serviços",
+  transparencia: "Transparência",
+  comunicacao: "Comunicação",
+  geral: "Avaliação Geral",
+};
+
+const CRITERIO_COLORS = ["#059669", "#0ea5e9", "#8b5cf6", "#f59e0b", "#ef4444"];
 
 export default function PesquisaPage() {
   const { config } = useSiteConfig();
@@ -13,6 +23,17 @@ export default function PesquisaPage() {
   const [showResults, setShowResults] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState("");
+  const [resumo, setResumo] = useState<PesquisaResumo | null>(null);
+  const [loadingResumo, setLoadingResumo] = useState(false);
+
+  useEffect(() => {
+    if (!showResults) return;
+    setLoadingResumo(true);
+    pesquisaService.resumo()
+      .then((dados) => setResumo(dados ?? null))
+      .catch(() => setResumo(null))
+      .finally(() => setLoadingResumo(false));
+  }, [showResults]);
 
   const criterios = [
     { key: "atendimento", label: "Qualidade do Atendimento", desc: "Cordialidade, clareza e acolhimento." },
@@ -99,136 +120,139 @@ export default function PesquisaPage() {
         <div className="max-w-4xl mx-auto">
           {showResults ? (
             <div className={`space-y-8 ${animClass(isVisible, "slide-up", 0)}`}>
-              {/* Header de Resultados */}
-              <div className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                  <div>
-                    <h2 className="text-xl font-bold text-gray-900 mb-2" style={{ fontFamily: "'Poppins', sans-serif" }}>Relatório de Transparência</h2>
-                    <p className="text-sm text-gray-500">Consolidado das avaliações realizadas no último trimestre. Dados protegidos conforme a LGPD.</p>
-                  </div>
-                  <div className="text-center md:text-right">
-                    <div className="text-4xl font-black" style={{ color: config.primaryColor }}>4.8</div>
-                    <div className="flex items-center gap-1 text-amber-400 mb-1 justify-center md:justify-end">
-                      <i className="ri-star-fill"></i>
-                      <i className="ri-star-fill"></i>
-                      <i className="ri-star-fill"></i>
-                      <i className="ri-star-fill"></i>
-                      <i className="ri-star-half-fill"></i>
-                    </div>
-                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Média Geral</p>
-                  </div>
+              {loadingResumo ? (
+                <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+                  <i className="ri-loader-4-line animate-spin text-3xl mb-3 block" style={{ color: config.primaryColor }}></i>
+                  <p className="text-sm text-gray-500">Carregando resultados reais...</p>
                 </div>
-              </div>
-
-              {/* Grid de Gráficos Principais */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Gauge Circular */}
-                <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm flex flex-col items-center justify-center text-center">
-                  <h3 className="text-sm font-bold text-gray-700 mb-4">Índice de Recomendação</h3>
-                  <div className="relative w-32 h-32 flex items-center justify-center">
-                    <svg className="w-full h-full transform -rotate-90">
-                      <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-gray-100" />
-                      <circle 
-                        cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent" 
-                        strokeDasharray={364.4}
-                        strokeDashoffset={364.4 * (1 - 0.94)}
-                        strokeLinecap="round"
-                        className="transition-all duration-1000 delay-500"
-                        style={{ color: config.primaryColor }}
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-2xl font-black text-gray-900">94%</span>
-                      <span className="text-[10px] text-gray-400 font-bold uppercase">Excelente</span>
-                    </div>
-                  </div>
-                  <p className="text-[11px] text-gray-500 mt-4 leading-relaxed">
-                    Dos usuários recomendariam os serviços do INPREC para outros servidores.
-                  </p>
+              ) : !resumo || resumo.total === 0 ? (
+                <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+                  <i className="ri-survey-line text-4xl text-gray-200 block mb-3"></i>
+                  <p className="text-base font-bold text-gray-600">Nenhuma avaliação registrada ainda.</p>
+                  <p className="text-sm text-gray-400 mt-1">Seja o primeiro a avaliar os serviços do INPREC!</p>
+                  <button onClick={() => setShowResults(false)} className="mt-6 inline-flex items-center gap-2 px-8 py-3 rounded-xl text-sm font-bold text-white" style={{ backgroundColor: config.primaryColor }}>
+                    <i className="ri-edit-line"></i> Participar agora
+                  </button>
                 </div>
-
-                {/* Distribuição de Estrelas */}
-                <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm col-span-1 lg:col-span-2">
-                  <h3 className="text-sm font-bold text-gray-700 mb-4">Distribuição de Avaliações</h3>
-                  <div className="space-y-2.5">
-                    {[
-                      { stars: 5, percent: 85, color: config.primaryColor },
-                      { stars: 4, percent: 10, color: "#4ade80" },
-                      { stars: 3, percent: 3, color: "#f59e0b" },
-                      { stars: 2, percent: 1, color: "#fb7185" },
-                      { stars: 1, percent: 1, color: "#ef4444" },
-                    ].map((row) => (
-                      <div key={row.stars} className="flex items-center gap-3">
-                        <div className="flex items-center gap-1 w-12 shrink-0">
-                          <span className="text-xs font-bold text-gray-600">{row.stars}</span>
-                          <i className="ri-star-fill text-[10px] text-amber-400"></i>
-                        </div>
-                        <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full transition-all duration-1000"
-                            style={{ width: isVisible ? `${row.percent}%` : "0%", backgroundColor: row.color }}
-                          ></div>
-                        </div>
-                        <span className="text-[10px] font-bold text-gray-400 w-8 text-right">{row.percent}%</span>
+              ) : (
+                <>
+                  {/* Header */}
+                  <div className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm">
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                      <div>
+                        <h2 className="text-xl font-bold text-gray-900 mb-2" style={{ fontFamily: "'Poppins', sans-serif" }}>Relatório de Transparência</h2>
+                        <p className="text-sm text-gray-500">Consolidado de <strong>{resumo.total}</strong> avaliações reais. Dados protegidos conforme a LGPD.</p>
                       </div>
-                    ))}
-                  </div>
-                  <div className="mt-4 pt-4 border-t border-gray-50 flex justify-between items-center text-[10px] text-gray-400">
-                    <span>Baseado em 1.240 avaliações recentes</span>
-                    <span className="flex items-center gap-1"><i className="ri-checkbox-circle-line text-green-500"></i> Dados Auditados</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Grid de Barras por Categoria */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {[
-                  { label: "Qualidade do Atendimento", value: 92, count: 124, color: config.primaryColor },
-                  { label: "Transparência de Dados", value: 96, count: 124, color: "#0ea5e9" },
-                  { label: "Agilidade nos Processos", value: 88, count: 124, color: "#8b5cf6" },
-                  { label: "Canais de Comunicação", value: 85, count: 124, color: "#f59e0b" },
-                ].map((item, idx) => (
-                  <div key={item.label} className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
-                    <div className="flex items-center justify-between mb-4">
-                      <span className="text-sm font-bold text-gray-700">{item.label}</span>
-                      <span className="text-sm font-black" style={{ color: item.color }}>{item.value}%</span>
-                    </div>
-                    <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden mb-3">
-                      <div 
-                        className="h-full transition-all duration-1000 delay-300"
-                        style={{ width: isVisible ? `${item.value}%` : "0%", backgroundColor: item.color }}
-                      ></div>
-                    </div>
-                    <div className="flex items-center justify-between text-[10px] text-gray-400 font-medium">
-                      <span>{item.count} respostas analisadas</span>
-                      <span>Excelente</span>
+                      <div className="text-center md:text-right">
+                        <div className="text-4xl font-black" style={{ color: config.primaryColor }}>{resumo.media.toFixed(1)}</div>
+                        <div className="flex items-center gap-1 text-amber-400 mb-1 justify-center md:justify-end">
+                          {[1,2,3,4,5].map((s) => (
+                            <i key={s} className={resumo.media >= s ? "ri-star-fill" : resumo.media >= s - 0.5 ? "ri-star-half-fill" : "ri-star-line"}></i>
+                          ))}
+                        </div>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Média Geral</p>
+                      </div>
                     </div>
                   </div>
-                ))}
-              </div>
 
-              {/* Informativo LGPD */}
-              <div className="bg-blue-50 border border-blue-100 rounded-2xl p-6 flex gap-4 items-start">
-                <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0 text-blue-600">
-                  <i className="ri-shield-check-line text-xl"></i>
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-blue-900 mb-1">Privacidade & LGPD</h4>
-                  <p className="text-xs text-blue-700 leading-relaxed">
-                    Em conformidade com a Lei Geral de Proteção de Dados (LGPD), todos os resultados exibidos são agregados e anonimizados. Nenhuma informação pessoal (nome, e-mail ou IP) é vinculada publicamente às avaliações individuais. A transparência é feita de forma ética e segura.
-                  </p>
-                </div>
-              </div>
+                  {/* Gauge + Distribuição */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm flex flex-col items-center justify-center text-center">
+                      <h3 className="text-sm font-bold text-gray-700 mb-4">Índice de Recomendação</h3>
+                      <div className="relative w-32 h-32 flex items-center justify-center">
+                        <svg className="w-full h-full transform -rotate-90">
+                          <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-gray-100" />
+                          <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent"
+                            strokeDasharray={364.4}
+                            strokeDashoffset={isVisible ? 364.4 * (1 - resumo.recomendacao / 100) : 364.4}
+                            strokeLinecap="round"
+                            className="transition-all duration-1000 delay-500"
+                            style={{ color: config.primaryColor }}
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                          <span className="text-2xl font-black text-gray-900">{resumo.recomendacao}%</span>
+                          <span className="text-[10px] text-gray-400 font-bold uppercase">{resumo.recomendacao >= 80 ? "Excelente" : resumo.recomendacao >= 60 ? "Bom" : "Regular"}</span>
+                        </div>
+                      </div>
+                      <p className="text-[11px] text-gray-500 mt-4 leading-relaxed">
+                        Dos usuários deram nota 4 ou 5, indicando alta satisfação com os serviços do INPREC.
+                      </p>
+                    </div>
 
-              <div className="text-center pt-4">
-                <button 
-                  onClick={() => setShowResults(false)}
-                  className="inline-flex items-center gap-2 px-8 py-3 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 cursor-pointer shadow-lg"
-                  style={{ backgroundColor: config.primaryColor }}
-                >
-                  <i className="ri-edit-line"></i> Quero avaliar também
-                </button>
-              </div>
+                    <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm col-span-1 lg:col-span-2">
+                      <h3 className="text-sm font-bold text-gray-700 mb-4">Distribuição de Avaliações</h3>
+                      <div className="space-y-2.5">
+                        {[5,4,3,2,1].map((stars, i) => {
+                          const row = resumo.distribuicao.find((d) => d.stars === stars);
+                          const pct = row?.percent ?? 0;
+                          const colors = [config.primaryColor, "#4ade80", "#f59e0b", "#fb7185", "#ef4444"];
+                          return (
+                            <div key={stars} className="flex items-center gap-3">
+                              <div className="flex items-center gap-1 w-12 shrink-0">
+                                <span className="text-xs font-bold text-gray-600">{stars}</span>
+                                <i className="ri-star-fill text-[10px] text-amber-400"></i>
+                              </div>
+                              <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                                <div className="h-full transition-all duration-1000" style={{ width: isVisible ? `${pct}%` : "0%", backgroundColor: colors[i] }}></div>
+                              </div>
+                              <span className="text-[10px] font-bold text-gray-400 w-12 text-right">{pct}% ({row?.count ?? 0})</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="mt-4 pt-4 border-t border-gray-50 flex justify-between items-center text-[10px] text-gray-400">
+                        <span>Baseado em {resumo.total} avaliações reais</span>
+                        <span className="flex items-center gap-1"><i className="ri-database-2-line text-green-500"></i> Dados do banco</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Critérios */}
+                  {resumo.criterios.length > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {resumo.criterios.map((item, i) => (
+                        <div key={item.chave} className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+                          <div className="flex items-center justify-between mb-4">
+                            <span className="text-sm font-bold text-gray-700">{CRITERIO_LABELS[item.chave] ?? item.chave}</span>
+                            <span className="text-sm font-black" style={{ color: CRITERIO_COLORS[i % CRITERIO_COLORS.length] }}>{item.media.toFixed(1)}/5</span>
+                          </div>
+                          <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden mb-3">
+                            <div className="h-full transition-all duration-1000 delay-300"
+                              style={{ width: isVisible ? `${item.percent}%` : "0%", backgroundColor: CRITERIO_COLORS[i % CRITERIO_COLORS.length] }}
+                            ></div>
+                          </div>
+                          <div className="flex items-center justify-between text-[10px] text-gray-400 font-medium">
+                            <span>{item.percent}% de satisfação</span>
+                            <span>{item.media >= 4.5 ? "Excelente" : item.media >= 3.5 ? "Bom" : item.media >= 2.5 ? "Regular" : "Ruim"}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* LGPD */}
+                  <div className="bg-blue-50 border border-blue-100 rounded-2xl p-6 flex gap-4 items-start">
+                    <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0 text-blue-600">
+                      <i className="ri-shield-check-line text-xl"></i>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-blue-900 mb-1">Privacidade & LGPD</h4>
+                      <p className="text-xs text-blue-700 leading-relaxed">
+                        Em conformidade com a LGPD, todos os resultados exibidos são agregados e anonimizados. Nenhuma informação pessoal é vinculada publicamente às avaliações. A transparência é feita de forma ética e segura.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-center pt-4">
+                    <button onClick={() => setShowResults(false)}
+                      className="inline-flex items-center gap-2 px-8 py-3 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 cursor-pointer shadow-lg"
+                      style={{ backgroundColor: config.primaryColor }}>
+                      <i className="ri-edit-line"></i> Quero avaliar também
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           ) : (
             <div className="max-w-5xl mx-auto">
