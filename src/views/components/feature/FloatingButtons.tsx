@@ -260,8 +260,10 @@ function renderButton(btn: FloatingButtonConfig, whatsapp: string, chatOpen: boo
   }
 
   if (btn.tipo === "whatsapp") {
+    const rawNum = (whatsapp || "").replace(/\D/g, "");
+    const waNum = rawNum.startsWith("55") && rawNum.length >= 12 ? rawNum : `55${rawNum}`;
     return (
-      <a key={btn.id} href={`https://wa.me/${whatsapp}`} target="_blank"
+      <a key={btn.id} href={`https://wa.me/${waNum}`} target="_blank"
         rel="nofollow noopener noreferrer" title={btn.label}
         className={`${baseClass} rounded-full shadow-lg relative`}
         style={{ backgroundColor: btn.cor, width: "56px", height: "56px" }}>

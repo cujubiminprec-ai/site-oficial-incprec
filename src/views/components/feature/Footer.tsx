@@ -194,8 +194,8 @@ export default function Footer() {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 py-5">
           <p className="text-gray-500 text-xs">© 2026 {config.siteName}. Todos os direitos reservados.</p>
           <div className="flex items-center gap-5">
-            <a href="#" className="text-gray-500 hover:text-white text-xs transition-colors cursor-pointer">Política de Privacidade</a>
-            <a href="#" className="text-gray-500 hover:text-white text-xs transition-colors cursor-pointer">Termos de Uso</a>
+            <Link to="/politica-de-privacidade" className="text-gray-500 hover:text-white text-xs transition-colors cursor-pointer">Política de Privacidade</Link>
+            <Link to="/termos-de-uso" className="text-gray-500 hover:text-white text-xs transition-colors cursor-pointer">Termos de Uso</Link>
             <Link to="/admin/login" className="text-gray-500 hover:text-white text-xs transition-colors cursor-pointer">Admin</Link>
           </div>
         </div>

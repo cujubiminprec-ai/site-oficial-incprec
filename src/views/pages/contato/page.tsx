@@ -15,6 +15,8 @@ export default function ContatoPage() {
   const [erro, setErro] = useState("");
   const blocos = usePageContent("contato");
   const hasHeroBloco = blocos.some(b => b.tipo === "hero");
+  const waDigits = (config.whatsapp || "").replace(/\D/g, "");
+  const waUrl = `https://wa.me/${waDigits.startsWith("55") && waDigits.length >= 12 ? waDigits : `55${waDigits}`}`;
   const heroBlocos = blocos.filter(b => b.tipo === "hero");
   const blocosNaoHero = blocos.filter(b => b.tipo !== "hero");
 
@@ -82,7 +84,7 @@ export default function ContatoPage() {
               ))}
             </div>
             <a
-              href={`https://wa.me/${config.whatsapp}`}
+              href={waUrl}
               target="_blank"
               rel="nofollow noopener noreferrer"
               className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-semibold text-white cursor-pointer whitespace-nowrap hover:opacity-90 transition-opacity bg-[#25D366]"
