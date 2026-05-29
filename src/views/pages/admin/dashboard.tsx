@@ -40,6 +40,8 @@ import ChatAdminFloating from "@/components/feature/ChatAdminFloating";
 import { useNotificacoes } from "@/contexts/NotificacoesContext";
 import { ApiError } from "@/services/api";
 import { uploadService } from "@/services/upload.service";
+import { analyticsService, type AnalyticsDashboard } from "@/services/analytics.service";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { transparenciaService } from "@/services/transparencia.service";
 import { conteudoService } from "@/services/conteudo.service";
 import { configuracoesService } from "@/services/configuracoes.service";
@@ -328,6 +330,8 @@ function DashboardTab({ setActiveTab }: { setActiveTab: (t: string) => void }) {
   const { config } = useSiteConfig();
   const { usuarioLogado } = useAdminAuth();
   const [stats, setStats] = useState({ noticias: 0, servicos: 0, documentos: 0, paginas: 0, chats: 0, chatsAbertos: 0 });
+  const [online, setOnline] = useState(0);
+  const [analytics, setAnalytics] = useState<AnalyticsDashboard | null>(null);
   const [hora, setHora] = useState(() => new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }));
   const hoje = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
@@ -336,11 +340,16 @@ function DashboardTab({ setActiveTab }: { setActiveTab: (t: string) => void }) {
     return () => clearInterval(tick);
   }, []);
 
+  // Carrega stats gerais + analytics
   useEffect(() => {
     const load = async () => {
       try {
-        const [chatsData] = await Promise.allSettled([chatService.listarAdmin()]);
+        const [chatsData, analyticsData] = await Promise.allSettled([
+          chatService.listarAdmin(),
+          analyticsService.dashboardMensal(),
+        ]);
         const lista = chatsData.status === "fulfilled" ? chatsData.value : [];
+        if (analyticsData.status === "fulfilled") setAnalytics(analyticsData.value);
         setStats((p) => ({
           ...p,
           noticias: todasNoticias.length,
@@ -353,6 +362,16 @@ function DashboardTab({ setActiveTab }: { setActiveTab: (t: string) => void }) {
       } catch { /* silencioso */ }
     };
     void load();
+  }, []);
+
+  // Online em tempo real — polling a cada 30s
+  useEffect(() => {
+    const poll = async () => {
+      try { setOnline(await analyticsService.onlineAgora()); } catch { /* silencioso */ }
+    };
+    void poll();
+    const id = setInterval(() => void poll(), 30000);
+    return () => clearInterval(id);
   }, []);
 
   const metricas = [
@@ -451,6 +470,111 @@ function DashboardTab({ setActiveTab }: { setActiveTab: (t: string) => void }) {
               </button>
             )
           ))}
+        </div>
+      </div>
+
+      {/* Analytics — Online agora + Gráfico mensal */}
+      <div className="grid grid-cols-1 lg:grid-cols-[200px_1fr] gap-5">
+        {/* Card Online Agora */}
+        <div
+          className="rounded-2xl p-5 flex flex-col items-center justify-center gap-3 text-center relative overflow-hidden"
+          style={{ background: `linear-gradient(135deg, ${config.secondaryColor} 0%, ${config.primaryColor} 100%)` }}
+        >
+          <div className="absolute inset-0 pointer-events-none opacity-10">
+            <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-white"></div>
+          </div>
+          <div className="relative z-10">
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <div className="w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse flex-shrink-0"></div>
+              <span className="text-white/70 text-xs font-semibold uppercase tracking-widest">Ao Vivo</span>
+            </div>
+            <p className="text-5xl font-extrabold text-white mb-1" style={{ fontFamily: "'Poppins', sans-serif" }}>
+              {online}
+            </p>
+            <p className="text-white/70 text-sm font-medium">
+              {online === 1 ? "pessoa online" : "pessoas online"}
+            </p>
+            <p className="text-white/40 text-[10px] mt-2">Últimos 5 minutos · atualiza a cada 30s</p>
+          </div>
+          <div className="relative z-10 grid grid-cols-2 gap-2 w-full mt-2">
+            <div className="bg-white/10 rounded-xl p-2.5 text-center">
+              <p className="text-white font-bold text-sm">{analytics?.hoje ?? "–"}</p>
+              <p className="text-white/50 text-[10px]">Hoje</p>
+            </div>
+            <div className="bg-white/10 rounded-xl p-2.5 text-center">
+              <p className="text-white font-bold text-sm">{analytics?.semana ?? "–"}</p>
+              <p className="text-white/50 text-[10px]">7 dias</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Gráfico Mensal */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-sm font-bold text-gray-900" style={{ fontFamily: "'Poppins', sans-serif" }}>
+                Histórico Mensal de Visitantes
+              </h3>
+              <p className="text-xs text-gray-400 mt-0.5">Visitas e cliques dos últimos 12 meses</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: config.primaryColor }}></div>
+                <span className="text-xs text-gray-500">Visitas</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-amber-400"></div>
+                <span className="text-xs text-gray-500">Cliques</span>
+              </div>
+              {analytics && (
+                <span className="text-xs font-bold text-gray-400">
+                  {analytics.totalVisitas.toLocaleString("pt-BR")} total
+                </span>
+              )}
+            </div>
+          </div>
+
+          {!analytics || analytics.meses.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-48 text-gray-300">
+              <i className="ri-bar-chart-box-line text-4xl mb-2"></i>
+              <p className="text-sm text-gray-400 font-medium">Coletando dados...</p>
+              <p className="text-xs text-gray-300 mt-1">Os dados aparecem conforme os visitantes navegam pelo site.</p>
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={200}>
+              <AreaChart data={analytics.meses} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="gradVisitas" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={config.primaryColor} stopOpacity={0.25} />
+                    <stop offset="95%" stopColor={config.primaryColor} stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="gradCliques" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.2} />
+                    <stop offset="95%" stopColor="#F59E0B" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+                <XAxis
+                  dataKey="mesLabel"
+                  tick={{ fontSize: 10, fill: "#9CA3AF" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fontSize: 10, fill: "#9CA3AF" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip
+                  contentStyle={{ borderRadius: "12px", border: "1px solid #E5E7EB", fontSize: "12px", boxShadow: "0 4px 16px rgba(0,0,0,0.08)" }}
+                  labelStyle={{ fontWeight: "bold", color: "#111827", marginBottom: "4px" }}
+                  formatter={(value: number, name: string) => [value.toLocaleString("pt-BR"), name === "visitas" ? "Visitas" : "Cliques"]}
+                />
+                <Area type="monotone" dataKey="visitas" stroke={config.primaryColor} strokeWidth={2.5} fill="url(#gradVisitas)" dot={false} activeDot={{ r: 5, fill: config.primaryColor }} />
+                <Area type="monotone" dataKey="cliques" stroke="#F59E0B" strokeWidth={2} fill="url(#gradCliques)" dot={false} activeDot={{ r: 4, fill: "#F59E0B" }} />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </div>
 

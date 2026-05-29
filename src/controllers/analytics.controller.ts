@@ -22,4 +22,12 @@ router.get("/admin", autenticar, exigirPermissao("analytics"), async (_req: Requ
   res.json({ sucesso: true, dados: await analyticsModel.resumoAdmin() });
 });
 
+router.get("/online", autenticar, exigirPermissao("analytics"), async (_req: Request, res: Response): Promise<void> => {
+  res.json({ sucesso: true, dados: await analyticsModel.onlineAgora() });
+});
+
+router.get("/dashboard", autenticar, exigirPermissao("analytics"), async (_req: Request, res: Response): Promise<void> => {
+  res.json({ sucesso: true, dados: await analyticsModel.dashboardMensal() });
+});
+
 export default router;

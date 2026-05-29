@@ -62,4 +62,52 @@ export const analyticsModel = {
       meses,
     };
   },
+
+  async onlineAgora() {
+    const row = await queryOne<{ online: number }>(`
+      SELECT COUNT(DISTINCT ip_origem) AS online
+      FROM analytics_eventos
+      WHERE criado_em >= NOW() - INTERVAL 5 MINUTE
+        AND ip_origem IS NOT NULL
+        AND ip_origem != ''
+    `);
+    return { online: Number(row?.online || 0) };
+  },
+
+  async dashboardMensal() {
+    const meses = (await query(`
+      SELECT DATE_FORMAT(criado_em, '%Y-%m') AS mes,
+        DATE_FORMAT(criado_em, '%b/%y') AS mesLabel,
+        SUM(CASE WHEN tipo = 'page_view' THEN 1 ELSE 0 END) AS visitas,
+        SUM(CASE WHEN tipo = 'click' THEN 1 ELSE 0 END) AS cliques,
+        COUNT(DISTINCT ip_origem) AS visitantes_unicos
+      FROM analytics_eventos
+      WHERE criado_em >= NOW() - INTERVAL 12 MONTH
+      GROUP BY DATE_FORMAT(criado_em, '%Y-%m'), DATE_FORMAT(criado_em, '%b/%y')
+      ORDER BY mes ASC
+    `)).rows;
+
+    const totals = await queryOne<{ total_views: number; total_clicks: number; hoje: number; semana: number }>(`
+      SELECT
+        SUM(CASE WHEN tipo = 'page_view' THEN 1 ELSE 0 END) AS total_views,
+        SUM(CASE WHEN tipo = 'click' THEN 1 ELSE 0 END) AS total_clicks,
+        SUM(CASE WHEN DATE(criado_em) = CURDATE() AND tipo = 'page_view' THEN 1 ELSE 0 END) AS hoje,
+        SUM(CASE WHEN criado_em >= NOW() - INTERVAL 7 DAY AND tipo = 'page_view' THEN 1 ELSE 0 END) AS semana
+      FROM analytics_eventos
+    `) ?? { total_views: 0, total_clicks: 0, hoje: 0, semana: 0 };
+
+    return {
+      meses: meses.map((m) => ({
+        mes: String(m.mes || ""),
+        mesLabel: String(m.mesLabel || m.mes || ""),
+        visitas: Number(m.visitas || 0),
+        cliques: Number(m.cliques || 0),
+        visitantesUnicos: Number(m.visitantes_unicos || 0),
+      })),
+      totalVisitas: Number(totals.total_views || 0),
+      totalCliques: Number(totals.total_clicks || 0),
+      hoje: Number(totals.hoje || 0),
+      semana: Number(totals.semana || 0),
+    };
+  },
 };
