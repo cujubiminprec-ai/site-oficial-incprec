@@ -146,9 +146,11 @@ export default function Navbar() {
   return (
     <>
     <header
-      className={`fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b transition-all duration-500 ${
+      id="menu-principal"
+      className={`fixed left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b transition-all duration-500 ${
         scrolled ? "border-gray-100 shadow-[0_4px_18px_rgba(0,0,0,0.08)]" : "border-white/70 shadow-[0_4px_18px_rgba(0,0,0,0.06)]"
       }`}
+      style={{ top: "36px" }}
     >
       {/* Barra Superior */}
       {showTopbar && !scrolled && (
