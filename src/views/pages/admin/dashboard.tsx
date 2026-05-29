@@ -3101,7 +3101,12 @@ function AtendimentoTab({ tipo }: { tipo: "ouvidoria" | "lai" | "contato" | "pes
 export default function AdminDashboardPage() {
   const navigate = useNavigate();
   const { usuarioLogado, temPermissao, carregando } = useAdminAuth();
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTabRaw] = useState("dashboard");
+
+  const setActiveTab = (tab: string) => {
+    setActiveTabRaw(tab);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   // Só redireciona após confirmar que não há sessão (aguarda carregamento)
   useEffect(() => {
