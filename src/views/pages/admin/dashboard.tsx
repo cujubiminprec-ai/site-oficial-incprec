@@ -31,6 +31,7 @@ import EleicaoAdminTab from "@/pages/admin/tabs/EleicaoAdminTab";
 import VotacaoAdminTab from "@/pages/admin/tabs/VotacaoAdminTab";
 import PerfilTab from "@/pages/admin/tabs/PerfilTab";
 import AtalhosAdminTab from "@/pages/admin/tabs/AtalhosAdminTab";
+import VLibrasWidget from "@/components/feature/VLibrasWidget";
 import GerenciadorArquivosTab from "@/pages/admin/tabs/GerenciadorArquivosTab";
 import AtendimentoAdminTab from "@/pages/admin/tabs/AtendimentoAdminTab";
 import ProtocolosAtendimentoTab from "@/pages/admin/tabs/ProtocolosAtendimentoTab";
@@ -3175,8 +3176,11 @@ export default function AdminDashboardPage() {
   };
 
   return (
-    <AdminLayout activeTab={activeTab} setActiveTab={setActiveTab}>
-      {tabMap[activeTab]}
-    </AdminLayout>
+    <>
+      <AdminLayout activeTab={activeTab} setActiveTab={setActiveTab}>
+        {tabMap[activeTab]}
+      </AdminLayout>
+      <VLibrasWidget />
+    </>
   );
 }

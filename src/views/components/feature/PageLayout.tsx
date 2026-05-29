@@ -5,6 +5,7 @@ import FloatingButtons from "@/components/feature/FloatingButtons";
 import AccessibilityToolbar from "@/components/feature/AccessibilityToolbar";
 import BannerAviso from "@/components/feature/BannerAviso";
 import Breadcrumb from "@/components/feature/Breadcrumb";
+import VLibrasWidget from "@/components/feature/VLibrasWidget";
 
 interface PageLayoutProps {
   children: ReactNode;
@@ -18,9 +19,10 @@ export default function PageLayout({ children, className = "" }: PageLayoutProps
       <BannerAviso />
       <Navbar />
       <Breadcrumb />
-      <main>{children}</main>
+      <main id="conteudo-principal">{children}</main>
       <Footer />
       <FloatingButtons />
+      <VLibrasWidget />
     </div>
   );
 }
