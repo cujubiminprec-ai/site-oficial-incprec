@@ -21,7 +21,9 @@ export default function ConfiguracoesTab() {
   const [prevStatsSaving, setPrevStatsSaving] = useState(false);
 
   useEffect(() => {
-    configuracoesService.obterPrevidenciaStats().then(setPrevStats).catch(() => {});
+    configuracoesService.obterPrevidenciaStats()
+      .then((d) => { if (d?.itens) setPrevStats(d); })
+      .catch(() => {});
   }, []);
 
   const handleSavePrevStats = async () => {
@@ -48,7 +50,9 @@ export default function ConfiguracoesTab() {
   const [pgIndSaving, setPgIndSaving] = useState(false);
 
   useEffect(() => {
-    configuracoesService.obterProgestaoIndicadores().then(setPgInd).catch(() => {});
+    configuracoesService.obterProgestaoIndicadores()
+      .then((d) => { if (d?.itens) setPgInd(d); })
+      .catch(() => {});
   }, []);
 
   const handleSavePgInd = async () => {
@@ -995,7 +999,7 @@ export default function ConfiguracoesTab() {
           </div>
 
           <div className="flex flex-col gap-3 mb-5">
-            {prevStats.itens.map((item, i) => (
+            {(prevStats?.itens ?? []).map((item, i) => (
               <div key={i} className="grid grid-cols-[auto_1fr_1fr] items-center gap-3 p-3 rounded-xl border border-gray-100 bg-gray-50">
                 <div
                   className="w-9 h-9 flex items-center justify-center rounded-xl flex-shrink-0"
@@ -1074,7 +1078,7 @@ export default function ConfiguracoesTab() {
           </div>
 
           <div className="flex flex-col gap-3 mb-5">
-            {pgInd.itens.map((item, i) => (
+            {(pgInd?.itens ?? []).map((item, i) => (
               <div key={i} className="grid grid-cols-[auto_1fr_1fr] items-center gap-3 p-3 rounded-xl border border-gray-100 bg-gray-50">
                 <div
                   className="w-9 h-9 flex items-center justify-center rounded-xl flex-shrink-0"
