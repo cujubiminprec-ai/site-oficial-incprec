@@ -1,4 +1,4 @@
-import { apiFetch } from "./api";
+import { apiFetch, getToken } from "./api";
 
 export interface ServicoSite {
   id: number;
@@ -17,15 +17,18 @@ export const servicosService = {
     return apiFetch<ServicoSite[]>("/servicos");
   },
   listarAdmin() {
-    return apiFetch<ServicoSite[]>("/servicos/admin");
+    const token = getToken();
+    return apiFetch<ServicoSite[]>("/servicos/admin", { token });
   },
   salvar(servico: ServicoSite) {
+    const token = getToken();
     if (servico.id) {
-      return apiFetch<ServicoSite>(`/servicos/${servico.id}`, { method: "PUT", body: servico });
+      return apiFetch<ServicoSite>(`/servicos/${servico.id}`, { method: "PUT", body: servico, token });
     }
-    return apiFetch<ServicoSite>("/servicos", { method: "POST", body: servico });
+    return apiFetch<ServicoSite>("/servicos", { method: "POST", body: servico, token });
   },
   remover(id: number | string) {
-    return apiFetch(`/servicos/${id}`, { method: "DELETE" });
+    const token = getToken();
+    return apiFetch(`/servicos/${id}`, { method: "DELETE", token });
   },
 };
