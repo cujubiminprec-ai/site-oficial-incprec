@@ -54,7 +54,8 @@ function AtalhoModal({ atalho, onSave, onClose, primaryColor }: ModalProps) {
     if (!file) return;
     setUploading(true);
     try {
-      const url = await uploadService.uploadImagem(file, "atalhos");
+      const resp = await uploadService.upload(file, "atalhos");
+      const url = resp.url;
       upd("iconeImg", url);
     } catch {
       alert("Erro ao enviar imagem.");
@@ -329,7 +330,7 @@ export default function AtalhosAdminTab() {
             Atalhos de Acesso Rápido
           </h1>
           <p className="text-sm text-gray-400 mt-1">
-            Gerencie links exibidos no rodapé, início da home e cabeçalho. Controle total: ícone, cor, local e destino.
+            Gerencie links exibidos no rodapé, na barra de atalhos da home e em outros locais. Controle total: ícone, cor, local e destino.
           </p>
         </div>
         <div className="flex gap-2 flex-shrink-0">
