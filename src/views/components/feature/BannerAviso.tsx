@@ -14,7 +14,7 @@ export interface BannerAvisoConfig {
 }
 
 export const bannerAvisoDefault: BannerAvisoConfig = {
-  ativo: true,
+  ativo: false,
   texto: "Recadastramento Obrigatório 2026 — Prazo até 31 de julho. Não perca o prazo!",
   cor: "#16a34a",
   textoCor: "#ffffff",
@@ -31,11 +31,16 @@ export function useBannerAviso(): [BannerAvisoConfig, (c: BannerAvisoConfig) => 
     configuracoesService
       .obterBanner()
       .then((banner) => {
-        if (ativo && banner) {
+        if (!ativo) return;
+        if (banner) {
           setConfig({ ...bannerAvisoDefault, ...banner });
+        } else {
+          setConfig((prev) => ({ ...prev, ativo: false }));
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        if (ativo) setConfig((prev) => ({ ...prev, ativo: false }));
+      });
     return () => {
       ativo = false;
     };
@@ -66,7 +71,9 @@ export default function BannerAviso() {
       configuracoesService
         .obterBanner()
         .then((banner) => {
-          if (banner) setDismissed(false);
+          if (banner && banner.ativo) {
+            setDismissed(false);
+          }
         })
         .catch(() => {});
     };
