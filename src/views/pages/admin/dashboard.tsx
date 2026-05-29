@@ -2599,6 +2599,33 @@ function PainelTransparenciaTab() {
               />
             </div>
           </div>
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Texto do Badge</label>
+            <input
+              value={(painelConfig as any).badgeTexto ?? "Transparência Atuarial"}
+              onChange={(e) => setPainelConfig((prev) => ({ ...prev, badgeTexto: e.target.value } as any))}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-300"
+              placeholder="Transparência Atuarial"
+            />
+            <div
+              className="flex items-center gap-2 cursor-pointer mt-2"
+              onClick={() => setPainelConfig((prev) => ({ ...prev, badgeVisivel: (prev as any).badgeVisivel === false ? true : false } as any))}
+            >
+              <div
+                className="w-9 h-5 rounded-full relative transition-all flex-shrink-0"
+                style={{ backgroundColor: (painelConfig as any).badgeVisivel !== false ? config.primaryColor : "#E5E7EB" }}
+              >
+                <div
+                  className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all"
+                  style={{ left: (painelConfig as any).badgeVisivel !== false ? "calc(100% - 18px)" : "2px" }}
+                />
+              </div>
+              <span className="text-xs font-semibold text-gray-600">
+                {(painelConfig as any).badgeVisivel !== false ? "Badge visível" : "Badge oculto"}
+              </span>
+            </div>
+          </div>
+
           <div className="flex items-end">
             <button
               onClick={() => void saveConfig()}

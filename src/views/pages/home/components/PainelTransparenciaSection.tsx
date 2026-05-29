@@ -222,13 +222,15 @@ export default function PainelTransparenciaSection() {
       <div className="max-w-screen-xl mx-auto px-4 md:px-8">
         {/* Header */}
         <div className="text-center mb-12">
-          <span
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-extrabold tracking-wider uppercase mb-4 shadow-3xs"
-            style={{ borderColor: `${config.primaryColor}30`, color: config.primaryColor, backgroundColor: `${config.primaryColor}08` }}
-          >
-            <i className="ri-bar-chart-box-line text-xs"></i>
-            Transparência Atuarial
-          </span>
+          {painelConfig.badgeVisivel !== false && (
+            <span
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-extrabold tracking-wider uppercase mb-4 shadow-3xs"
+              style={{ borderColor: `${config.primaryColor}30`, color: config.primaryColor, backgroundColor: `${config.primaryColor}08` }}
+            >
+              <i className="ri-bar-chart-box-line text-xs"></i>
+              {painelConfig.badgeTexto || "Transparência Atuarial"}
+            </span>
+          )}
           <h2
             className="text-3xl md:text-4xl font-bold mb-4"
             style={{ fontFamily: "'Poppins', sans-serif", color: "#1B5E20" }}

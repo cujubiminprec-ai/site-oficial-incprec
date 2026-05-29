@@ -100,5 +100,7 @@ export const painelTransparenciaConfigDefault = {
   columnsLayout: "2",
   autoSlideDelay: 5000,
   showFixedSix: true,
-  layoutVersion: "painel-flex-grid-v2"
+  layoutVersion: "painel-flex-grid-v2",
+  badgeVisivel: true,
+  badgeTexto: "Transparência Atuarial",
 };
