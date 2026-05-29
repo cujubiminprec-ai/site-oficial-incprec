@@ -6,6 +6,7 @@ import { useScrollAnimation, animClass } from "@/hooks/useScrollAnimation";
 import { usePageContent } from "@/hooks/usePageContent";
 import PaginaBlocosRenderer from "@/components/feature/PaginaBlocosRenderer";
 import { ServicoSite, servicosService } from "@/services/servicos.service";
+import { configuracoesService, type ServicosStats, servicosStatsDefault } from "@/services/configuracoes.service";
 
 function HeroSection() {
   const { ref, isVisible } = useScrollAnimation({ threshold: 0.1 });
@@ -70,17 +71,21 @@ function ServicoCard({ servico, index }: { servico: ServicoItem; index: number }
 function StatsSection() {
   const { ref, isVisible } = useScrollAnimation({ threshold: 0.2 });
   const { config } = useSiteConfig();
-  const stats = [
-    { value: "12+", label: "Serviços Ativos", icon: "ri-service-line" },
-    { value: "200+", label: "Servidores Capacitados", icon: "ri-team-line" },
-    { value: "15", label: "Municípios Atendidos", icon: "ri-map-pin-line" },
-    { value: "98%", label: "Satisfação dos Usuários", icon: "ri-star-line" },
-  ];
+  const [statsConfig, setStatsConfig] = useState<ServicosStats>(servicosStatsDefault);
+
+  useEffect(() => {
+    configuracoesService.obterServicosStats()
+      .then((d) => { if (d?.itens) setStatsConfig(d); })
+      .catch(() => {});
+  }, []);
+
+  if (!statsConfig.ativo || !statsConfig.itens.some((s) => s.value)) return null;
+
   return (
     <section ref={ref as React.RefObject<HTMLElement>} className="py-16 px-4" style={{ backgroundColor: `${config.primaryColor}08` }}>
       <div className="max-w-screen-xl mx-auto">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-          {stats.map((s, i) => (
+          {statsConfig.itens.filter((s) => s.value).map((s, i) => (
             <div key={s.label} className={`text-center ${animClass(isVisible, "scale", i * 100)}`}>
               <div className="w-12 h-12 flex items-center justify-center rounded-xl mx-auto mb-3" style={{ backgroundColor: `${config.primaryColor}20` }}>
                 <i className={`${s.icon} text-xl`} style={{ color: config.primaryColor }}></i>

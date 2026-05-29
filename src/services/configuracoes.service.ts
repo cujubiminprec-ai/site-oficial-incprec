@@ -55,6 +55,27 @@ export const footerAtalhosPadrao: FooterAtalhos = {
   ],
 };
 
+export interface ServicosStatItem {
+  value: string;
+  label: string;
+  icon: string;
+}
+
+export interface ServicosStats {
+  ativo: boolean;
+  itens: ServicosStatItem[];
+}
+
+export const servicosStatsDefault: ServicosStats = {
+  ativo: false,
+  itens: [
+    { value: "", label: "Serviços Ativos",        icon: "ri-service-line" },
+    { value: "", label: "Servidores Capacitados",  icon: "ri-team-line" },
+    { value: "", label: "Municípios Atendidos",    icon: "ri-map-pin-line" },
+    { value: "", label: "Satisfação dos Usuários", icon: "ri-star-line" },
+  ],
+};
+
 export const progestaoIndicadoresDefault: ProgestaoIndicadores = {
   ativo: false,
   itens: [
@@ -385,6 +406,15 @@ export const configuracoesService = {
       body: stats,
       token,
     });
+  },
+
+  async obterServicosStats(): Promise<ServicosStats> {
+    return apiFetch<ServicosStats>("/configuracoes/app/servicos_stats").catch(() => servicosStatsDefault);
+  },
+
+  async salvarServicosStats(stats: ServicosStats): Promise<ServicosStats> {
+    const token = getToken();
+    return apiFetch<ServicosStats>("/configuracoes/app/servicos_stats", { method: "PUT", body: stats, token });
   },
 
   async obterProgestaoIndicadores(): Promise<ProgestaoIndicadores> {

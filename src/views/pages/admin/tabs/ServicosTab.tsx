@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSiteConfig } from "@/contexts/SiteConfigContext";
 import { servicos as servicosMock } from "@/mocks/servicos";
-import { configuracoesService } from "@/services/configuracoes.service";
+import { configuracoesService, type ServicosStats, servicosStatsDefault } from "@/services/configuracoes.service";
 import { servicosService, ServicoSite } from "@/services/servicos.service";
 
 type Servico = ServicoSite;
@@ -126,6 +126,34 @@ export default function ServicosTab() {
     });
   }, []);
 
+  // ── Estatísticas da página de Serviços ──────────────────────────────────
+  const [svcStats, setSvcStats] = useState<ServicosStats>(servicosStatsDefault);
+  const [svcStatsSaved, setSvcStatsSaved] = useState(false);
+  const [svcStatsSaving, setSvcStatsSaving] = useState(false);
+
+  useEffect(() => {
+    configuracoesService.obterServicosStats()
+      .then((d) => { if (d?.itens) setSvcStats(d); })
+      .catch(() => {});
+  }, []);
+
+  const handleSaveSvcStats = async () => {
+    setSvcStatsSaving(true);
+    try {
+      await configuracoesService.salvarServicosStats(svcStats);
+      setSvcStatsSaved(true);
+      setTimeout(() => setSvcStatsSaved(false), 2500);
+    } finally {
+      setSvcStatsSaving(false);
+    }
+  };
+
+  const updSvcStat = (i: number, field: "value" | "label", val: string) =>
+    setSvcStats((prev) => ({
+      ...prev,
+      itens: prev.itens.map((item, idx) => idx === i ? { ...item, [field]: val } : item),
+    }));
+
   const toast = () => {
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -244,6 +272,68 @@ export default function ServicosTab() {
       </div>
 
       {editando && <ServicoFormModal servico={editando} onSave={(item) => void handleSave(item)} onClose={() => setEditando(null)} primaryColor={config.primaryColor} />}
+
+      {/* ── Estatísticas da Página de Serviços ─────────────────────────── */}
+      <div className="mt-8 rounded-2xl border border-gray-100 bg-white p-5">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+              <i className="ri-bar-chart-box-line" style={{ color: config.primaryColor }}></i>
+              Estatísticas da Página de Serviços
+            </h2>
+            <p className="text-xs text-gray-400 mt-1">
+              Números exibidos abaixo do hero. Deixe os valores em branco para ocultar. Ative o toggle para publicar.
+            </p>
+          </div>
+          <div
+            className="flex items-center gap-3 cursor-pointer p-2.5 rounded-xl bg-gray-50 flex-shrink-0"
+            onClick={() => setSvcStats((p) => ({ ...p, ativo: !p.ativo }))}
+          >
+            <div className="w-11 h-6 rounded-full relative flex-shrink-0 transition-all"
+              style={{ backgroundColor: svcStats.ativo ? "#059669" : "#E5E7EB" }}>
+              <div className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all"
+                style={{ left: svcStats.ativo ? "calc(100% - 22px)" : "2px" }} />
+            </div>
+            <span className="text-xs font-semibold" style={{ color: svcStats.ativo ? "#059669" : "#9CA3AF" }}>
+              {svcStats.ativo ? "Ativo no site" : "Oculto no site"}
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+          {(svcStats.itens ?? []).map((item, i) => (
+            <div key={i} className="grid grid-cols-[auto_1fr_1fr] items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
+              <div className="w-9 h-9 flex items-center justify-center rounded-xl flex-shrink-0"
+                style={{ backgroundColor: `${config.primaryColor}15` }}>
+                <i className={`${item.icon} text-base`} style={{ color: config.primaryColor }}></i>
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold text-gray-500 mb-1 block">Valor</label>
+                <input value={item.value} onChange={(e) => updSvcStat(i, "value", e.target.value)}
+                  placeholder="Ex: 12" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-bold focus:outline-none bg-white" />
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold text-gray-500 mb-1 block">Rótulo</label>
+                <input value={item.label} onChange={(e) => updSvcStat(i, "label", e.target.value)}
+                  placeholder="Ex: Serviços Ativos" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none bg-white" />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {svcStatsSaved && (
+          <p className="text-xs text-green-600 flex items-center gap-1 mb-3">
+            <i className="ri-check-line"></i> Estatísticas salvas!
+          </p>
+        )}
+
+        <button onClick={handleSaveSvcStats} disabled={svcStatsSaving}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white cursor-pointer hover:opacity-90 disabled:opacity-50"
+          style={{ backgroundColor: config.primaryColor }}>
+          {svcStatsSaving ? <i className="ri-loader-4-line animate-spin"></i> : <i className="ri-save-line"></i>}
+          {svcStatsSaving ? "Salvando..." : "Salvar Estatísticas"}
+        </button>
+      </div>
     </div>
   );
 }
