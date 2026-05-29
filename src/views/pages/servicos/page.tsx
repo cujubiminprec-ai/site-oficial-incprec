@@ -3,20 +3,9 @@ import { Link } from "react-router-dom";
 import PageLayout from "@/components/feature/PageLayout";
 import { useSiteConfig } from "@/contexts/SiteConfigContext";
 import { useScrollAnimation, animClass } from "@/hooks/useScrollAnimation";
-import { servicos } from "@/mocks/servicos";
 import { usePageContent } from "@/hooks/usePageContent";
 import PaginaBlocosRenderer from "@/components/feature/PaginaBlocosRenderer";
 import { ServicoSite, servicosService } from "@/services/servicos.service";
-
-const servicosFallback: ServicoSite[] = [
-  ...servicos,
-  { id: 7, icone: "ri-money-dollar-circle-line", titulo: "Gestão Financeira", descricao: "Assessoria em gestão orçamentária, execução financeira e contabilidade pública conforme LRF." },
-  { id: 8, icone: "ri-user-heart-line", titulo: "Saúde do Servidor", descricao: "Programas de qualidade de vida, saúde ocupacional e assistência ao servidor municipal." },
-  { id: 9, icone: "ri-map-2-line", titulo: "Gestão Territorial", descricao: "Planejamento urbano e rural, cadastro técnico municipal e gestão de políticas territoriais." },
-  { id: 10, icone: "ri-recycle-line", titulo: "Sustentabilidade", descricao: "Projetos de gestão ambiental, resíduos sólidos e sustentabilidade na administração pública." },
-  { id: 11, icone: "ri-graduation-cap-line", titulo: "Escola de Governo", descricao: "Cursos de pós-graduação, extensão e especialização voltados para servidores públicos." },
-  { id: 12, icone: "ri-computer-line", titulo: "Modernização Digital", descricao: "Implantação de sistemas de gestão eletrônica, governo digital e desburocratização de processos." },
-];
 
 function HeroSection() {
   const { ref, isVisible } = useScrollAnimation({ threshold: 0.1 });
@@ -109,7 +98,8 @@ function StatsSection() {
 export default function ServicosPage() {
   const gridRef = useRef<HTMLDivElement>(null);
   const blocos = usePageContent("servicos");
-  const [servicosSite, setServicosSite] = useState<ServicoSite[]>(servicosFallback);
+  const [servicosSite, setServicosSite] = useState<ServicoSite[]>([]);
+  const [carregando, setCarregando] = useState(true);
   const hasHeroBloco = blocos.some(b => b.tipo === "hero");
   const heroBlocos = blocos.filter(b => b.tipo === "hero");
   const blocosNaoHero = blocos.filter(b => b.tipo !== "hero");
@@ -121,15 +111,21 @@ export default function ServicosPage() {
       try {
         const lista = await servicosService.listar();
         if (!ativo) return;
-        setServicosSite(lista.length > 0 ? lista.filter((item) => item.ativo !== false) : servicosFallback);
+        setServicosSite(lista.filter((item) => item.ativo !== false));
       } catch {
-        if (ativo) {
-          setServicosSite(servicosFallback);
-        }
+        if (ativo) setServicosSite([]);
+      } finally {
+        if (ativo) setCarregando(false);
       }
     };
 
     void carregar();
+
+    window.addEventListener("inprec-servicos-updated", carregar);
+    return () => {
+      ativo = false;
+      window.removeEventListener("inprec-servicos-updated", carregar);
+    };
   }, []);
 
   return (
@@ -153,9 +149,21 @@ export default function ServicosPage() {
               Conheça o portfólio completo de serviços que oferecemos para municípios e cidadãos.
             </p>
           </div>
-          <div ref={gridRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {servicosSite.map((s, i) => <ServicoCard key={s.id} servico={s} index={i} />)}
-          </div>
+          {carregando ? (
+            <div className="flex items-center justify-center py-16 text-gray-400 gap-2">
+              <i className="ri-loader-4-line animate-spin"></i>
+              <span className="text-sm">Carregando serviços...</span>
+            </div>
+          ) : servicosSite.length === 0 ? (
+            <div className="text-center py-16 text-gray-400">
+              <i className="ri-service-line text-4xl block mb-3 text-gray-200"></i>
+              <p className="text-sm font-medium">Nenhum serviço publicado no momento.</p>
+            </div>
+          ) : (
+            <div ref={gridRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {servicosSite.map((s, i) => <ServicoCard key={s.id} servico={s} index={i} />)}
+            </div>
+          )}
         </div>
       </section>
     </PageLayout>
