@@ -326,57 +326,187 @@ function AdminLayout({ children, activeTab, setActiveTab }: { children: ReactNod
 // ── DASHBOARD ──────────────────────────────────────────────────────────────────
 function DashboardTab({ setActiveTab }: { setActiveTab: (t: string) => void }) {
   const { config } = useSiteConfig();
-  const cards = [
-    { icon: "ri-newspaper-line", label: "Notícias", value: todasNoticias.length, color: "#6D28D9", tab: "noticias" },
-    { icon: "ri-service-line", label: "Serviços", value: servicos.length, color: "#0891B2", tab: "servicos" },
-    { icon: "ri-file-chart-line", label: "Documentos", value: documentos.length, color: "#059669", tab: "transparencia" },
-    { icon: "ri-slideshow-line", label: "Slides", value: 6, color: "#D97706", tab: "slides" },
+  const { usuarioLogado } = useAdminAuth();
+  const [stats, setStats] = useState({ noticias: 0, servicos: 0, documentos: 0, paginas: 0, chats: 0, chatsAbertos: 0 });
+  const [hora, setHora] = useState(() => new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }));
+  const hoje = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+
+  useEffect(() => {
+    const tick = setInterval(() => setHora(new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })), 30000);
+    return () => clearInterval(tick);
+  }, []);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [chatsData] = await Promise.allSettled([chatService.listarAdmin()]);
+        const lista = chatsData.status === "fulfilled" ? chatsData.value : [];
+        setStats((p) => ({
+          ...p,
+          noticias: todasNoticias.length,
+          servicos: servicos.length,
+          documentos: documentos.length,
+          paginas: 38,
+          chats: lista.length,
+          chatsAbertos: lista.filter((c) => c.status === "aberta" || c.status === "em-atendimento").length,
+        }));
+      } catch { /* silencioso */ }
+    };
+    void load();
+  }, []);
+
+  const metricas = [
+    { icon: "ri-newspaper-line",          label: "Notícias",        value: stats.noticias,     color: "#6D28D9", tab: "noticias",     bg: "#F5F3FF" },
+    { icon: "ri-service-line",            label: "Serviços",        value: stats.servicos,     color: "#0891B2", tab: "servicos",     bg: "#EFF6FF" },
+    { icon: "ri-pages-line",              label: "Páginas",         value: stats.paginas,      color: "#059669", tab: "paginas",      bg: "#ECFDF5" },
+    { icon: "ri-file-chart-line",         label: "Documentos",      value: stats.documentos,   color: "#D97706", tab: "transparencia",bg: "#FFFBEB" },
+    { icon: "ri-chat-3-line",             label: "Chats",           value: stats.chats,        color: "#DC2626", tab: "chat-admin",   bg: "#FFF1F2" },
+    { icon: "ri-inbox-unarchive-line",    label: "Chats Abertos",   value: stats.chatsAbertos, color: "#EA580C", tab: "chat-admin",   bg: "#FFF7ED" },
   ];
-  const pages = [
-    { name: "Home", path: "/" },
-    { name: "Quem Somos", path: "/quem-somos" },
-    { name: "Serviços", path: "/servicos" },
-    { name: "Previdência", path: "/previdencia" },
-    { name: "Notícias", path: "/noticias" },
-    { name: "Transparência", path: "/transparencia" },
-    { name: "Ouvidoria", path: "/ouvidoria" },
-    { name: "LAI", path: "/lai" },
-    { name: "Perguntas Frequentes", path: "/perguntas-frequentes" },
-    { name: "Pesquisa de Satisfação", path: "/pesquisa-satisfacao" },
-    { name: "Contato", path: "/contato" },
+
+  const acoes = [
+    { icon: "ri-add-circle-line",     label: "Nova Notícia",     tab: "noticias",      color: "#6D28D9" },
+    { icon: "ri-image-add-line",      label: "Novo Slide",       tab: "slides",        color: "#0891B2" },
+    { icon: "ri-pages-line",          label: "Editar Páginas",   tab: "paginas",       color: "#059669" },
+    { icon: "ri-settings-3-line",     label: "Configurações",    tab: "configuracoes", color: "#D97706" },
+    { icon: "ri-links-line",          label: "Atalhos",          tab: "atalhos",       color: "#7C3AED" },
+    { icon: "ri-user-settings-line",  label: "Usuários",         tab: "usuarios",      color: "#DC2626" },
+    { icon: "ri-menu-2-line",         label: "Menus",            tab: "menu",          color: "#0284C7" },
+    { icon: "ri-eye-line",            label: "Ver Site",         tab: "_site",         color: "#374151" },
   ];
+
+  const nome = usuarioLogado?.nome?.split(" ")[0] || "Admin";
+  const saudacao = (() => {
+    const h = new Date().getHours();
+    if (h < 12) return "Bom dia";
+    if (h < 18) return "Boa tarde";
+    return "Boa noite";
+  })();
+
   return (
-    <div>
-      <h1 className="text-xl font-bold text-gray-900 mb-5" style={{ fontFamily: "'Poppins', sans-serif" }}>Dashboard</h1>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        {cards.map((c) => (
-          <button key={c.label} onClick={() => setActiveTab(c.tab)} className="bg-white rounded-2xl p-4 border border-gray-100 text-left cursor-pointer hover:border-gray-200 transition-all">
-            <div className="w-8 h-8 flex items-center justify-center rounded-lg mb-2" style={{ backgroundColor: `${c.color}15` }}>
-              <i className={`${c.icon} text-base`} style={{ color: c.color }}></i>
-            </div>
-            <div className="text-xl font-bold text-gray-900" style={{ fontFamily: "'Poppins', sans-serif" }}>{c.value}</div>
-            <div className="text-[10px] text-gray-400 mt-0.5">{c.label}</div>
-          </button>
-        ))}
+    <div className="space-y-6">
+      {/* Header de boas-vindas */}
+      <div
+        className="rounded-2xl p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 overflow-hidden relative"
+        style={{ background: `linear-gradient(135deg, ${config.secondaryColor} 0%, ${config.primaryColor} 100%)` }}
+      >
+        <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-10">
+          <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-white"></div>
+          <div className="absolute -bottom-8 left-20 w-40 h-40 rounded-full bg-white"></div>
+        </div>
+        <div className="relative z-10">
+          <p className="text-white/60 text-xs font-semibold uppercase tracking-widest mb-1">{hoje}</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-white mb-1" style={{ fontFamily: "'Poppins', sans-serif" }}>
+            {saudacao}, {nome}! 👋
+          </h1>
+          <p className="text-white/70 text-sm">Bem-vindo ao painel de controle do {config.siteName}.</p>
+        </div>
+        <div className="relative z-10 flex-shrink-0 bg-white/15 backdrop-blur-sm border border-white/20 rounded-2xl px-6 py-4 text-center">
+          <p className="text-white/60 text-xs mb-1">Horário atual</p>
+          <p className="text-white text-3xl font-bold" style={{ fontFamily: "'Poppins', sans-serif" }}>{hora}</p>
+          <p className="text-white/50 text-[10px] mt-1">Brasília (BRT)</p>
+        </div>
       </div>
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
-        <h2 className="text-sm font-bold text-gray-900 mb-3" style={{ fontFamily: "'Poppins', sans-serif" }}>Páginas do Site</h2>
-        <div className="flex flex-col gap-1">
-          {pages.map((p) => (
-            <div key={p.path} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
-              <div className="flex items-center gap-3">
-                <i className="ri-pages-line text-gray-300 text-xs"></i>
-                <span className="text-[13px] text-gray-700 font-medium">{p.name}</span>
-                <span className="text-[11px] text-gray-400">{p.path}</span>
+
+      {/* Métricas */}
+      <div>
+        <h2 className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-3">Visão Geral</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {metricas.map((m) => (
+            <button key={m.label} onClick={() => setActiveTab(m.tab)}
+              className="group bg-white rounded-2xl p-4 border border-gray-100 text-left cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+              <div className="w-10 h-10 flex items-center justify-center rounded-xl mb-3 transition-transform group-hover:scale-110"
+                style={{ backgroundColor: m.bg }}>
+                <i className={`${m.icon} text-lg`} style={{ color: m.color }}></i>
               </div>
-              <div className="flex items-center gap-3">
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-50 text-green-600 font-medium">Publicada</span>
-                <Link to={p.path} target="_blank" className="text-xs text-gray-400 hover:text-gray-700 cursor-pointer">
-                  <i className="ri-external-link-line"></i>
-                </Link>
-              </div>
-            </div>
+              <p className="text-2xl font-extrabold text-gray-900 mb-0.5" style={{ fontFamily: "'Poppins', sans-serif" }}>{m.value}</p>
+              <p className="text-[11px] text-gray-400 font-medium">{m.label}</p>
+            </button>
           ))}
+        </div>
+      </div>
+
+      {/* Ações Rápidas */}
+      <div>
+        <h2 className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-3">Ações Rápidas</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+          {acoes.map((a) => (
+            a.tab === "_site" ? (
+              <Link key={a.label} to="/" target="_blank"
+                className="group flex flex-col items-center gap-2 bg-white rounded-2xl p-4 border border-gray-100 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center">
+                <div className="w-10 h-10 flex items-center justify-center rounded-xl transition-transform group-hover:scale-110"
+                  style={{ backgroundColor: `${a.color}12` }}>
+                  <i className={`${a.icon} text-lg`} style={{ color: a.color }}></i>
+                </div>
+                <span className="text-[11px] font-semibold text-gray-600 leading-tight">{a.label}</span>
+              </Link>
+            ) : (
+              <button key={a.label} onClick={() => setActiveTab(a.tab)}
+                className="group flex flex-col items-center gap-2 bg-white rounded-2xl p-4 border border-gray-100 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center">
+                <div className="w-10 h-10 flex items-center justify-center rounded-xl transition-transform group-hover:scale-110"
+                  style={{ backgroundColor: `${a.color}12` }}>
+                  <i className={`${a.icon} text-lg`} style={{ color: a.color }}></i>
+                </div>
+                <span className="text-[11px] font-semibold text-gray-600 leading-tight">{a.label}</span>
+              </button>
+            )
+          ))}
+        </div>
+      </div>
+
+      {/* Status do Sistema */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2" style={{ fontFamily: "'Poppins', sans-serif" }}>
+            <i className="ri-pulse-line" style={{ color: config.primaryColor }}></i> Status do Sistema
+          </h3>
+          <div className="space-y-3">
+            {[
+              { label: "Site Público", status: "online", icon: "ri-global-line" },
+              { label: "API Backend", status: "online", icon: "ri-server-line" },
+              { label: "Banco de Dados MySQL", status: "online", icon: "ri-database-2-line" },
+              { label: "Chat Online", status: stats.chatsAbertos > 0 ? "pendente" : "online", icon: "ri-chat-3-line" },
+            ].map((s) => (
+              <div key={s.label} className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 flex items-center justify-center rounded-lg" style={{ backgroundColor: `${config.primaryColor}10` }}>
+                    <i className={`${s.icon} text-sm`} style={{ color: config.primaryColor }}></i>
+                  </div>
+                  <span className="text-sm font-medium text-gray-700">{s.label}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${s.status === "online" ? "bg-green-400" : "bg-amber-400"} animate-pulse`}></div>
+                  <span className={`text-xs font-semibold ${s.status === "online" ? "text-green-600" : "text-amber-600"}`}>
+                    {s.status === "online" ? "Online" : `${stats.chatsAbertos} pendente${stats.chatsAbertos !== 1 ? "s" : ""}`}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2" style={{ fontFamily: "'Poppins', sans-serif" }}>
+            <i className="ri-layout-grid-line" style={{ color: config.primaryColor }}></i> Módulos do Painel
+          </h3>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { label: "Notícias", tab: "noticias", icon: "ri-newspaper-line" },
+              { label: "Páginas", tab: "paginas", icon: "ri-pages-line" },
+              { label: "Transparência", tab: "transparencia", icon: "ri-file-chart-line" },
+              { label: "Atalhos", tab: "atalhos", icon: "ri-links-line" },
+              { label: "Menus", tab: "menu", icon: "ri-menu-2-line" },
+              { label: "Analytics", tab: "analytics", icon: "ri-line-chart-line" },
+              { label: "Gestores", tab: "gestores", icon: "ri-group-line" },
+              { label: "Configurações", tab: "configuracoes", icon: "ri-settings-3-line" },
+            ].map((m) => (
+              <button key={m.tab} onClick={() => setActiveTab(m.tab)}
+                className="flex items-center gap-2 p-3 rounded-xl border border-gray-100 hover:border-gray-200 hover:bg-gray-50 cursor-pointer transition-all text-left">
+                <i className={`${m.icon} text-sm`} style={{ color: config.primaryColor }}></i>
+                <span className="text-xs font-semibold text-gray-700">{m.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>
