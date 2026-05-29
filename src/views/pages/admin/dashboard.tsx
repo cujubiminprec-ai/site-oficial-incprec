@@ -30,6 +30,7 @@ import CursosAdminTab from "@/pages/admin/tabs/CursosAdminTab";
 import EleicaoAdminTab from "@/pages/admin/tabs/EleicaoAdminTab";
 import VotacaoAdminTab from "@/pages/admin/tabs/VotacaoAdminTab";
 import PerfilTab from "@/pages/admin/tabs/PerfilTab";
+import AtalhosAdminTab from "@/pages/admin/tabs/AtalhosAdminTab";
 import GerenciadorArquivosTab from "@/pages/admin/tabs/GerenciadorArquivosTab";
 import AtendimentoAdminTab from "@/pages/admin/tabs/AtendimentoAdminTab";
 import ProtocolosAtendimentoTab from "@/pages/admin/tabs/ProtocolosAtendimentoTab";
@@ -51,6 +52,7 @@ const ALL_MENU_ITEMS = [
   { id: "dashboard", icon: "ri-dashboard-line", label: "Dashboard", perm: "dashboard" },
   { id: "banner", icon: "ri-megaphone-line", label: "Banner de Aviso", perm: "banner" },
   { id: "floating", icon: "ri-layout-bottom-2-line", label: "Botões Flutuantes", perm: "floating" },
+  { id: "atalhos", icon: "ri-links-line", label: "Atalhos de Acesso Rápido", perm: "configuracoes" },
   { id: "home", icon: "ri-home-4-line", label: "Home / Inicio", perm: "paginas" },
   { id: "slides", icon: "ri-slideshow-line", label: "Slides da Home", perm: "slides" },
   { id: "painel", icon: "ri-bar-chart-box-line", label: "Painel Transparência", perm: "painel" },
@@ -2865,6 +2867,7 @@ export default function AdminDashboardPage() {
     faq: <FAQTab />,
     financas: <FinancasTab />,
     floating: <FloatingButtonsTab />,
+    atalhos: <AtalhosAdminTab />,
     menu: <MenuNavegacaoTab />,
     cursos: <CursosAdminTab />,
     eventos: <EventosAdminTab />,

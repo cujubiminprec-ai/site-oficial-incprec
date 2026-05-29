@@ -2,30 +2,28 @@ import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useSiteConfig } from "@/contexts/SiteConfigContext";
 import ProGestaoBadge, { hasProGestaoLocation } from "@/components/feature/ProGestaoBadge";
-import { configuracoesService, type FooterAtalhoItem, footerAtalhosPadrao } from "@/services/configuracoes.service";
+import { atalhosService, type AtalhoRapido } from "@/services/atalhos.service";
 
 export default function Footer() {
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
-  const [atalhos, setAtalhos] = useState<FooterAtalhoItem[]>(footerAtalhosPadrao.itens);
+  const [atalhos, setAtalhos] = useState<AtalhoRapido[]>([]);
   const { config } = useSiteConfig();
   const contrachequeUrl = config.contrachequeUrl || "";
   const horario = config.horario || "Segunda a Sexta — 07h30 às 13h30";
 
   useEffect(() => {
     let ativo = true;
-    configuracoesService.obterFooterAtalhos()
-      .then((data) => { if (ativo && data?.itens?.length > 0) setAtalhos(data.itens); })
-      .catch(() => {});
-    const handler = () => {
-      configuracoesService.obterFooterAtalhos()
-        .then((data) => { if (data?.itens?.length > 0) setAtalhos(data.itens); })
+    const carregar = () => {
+      atalhosService.listar()
+        .then((lista) => { if (ativo) setAtalhos(lista.filter((a) => a.locais.includes("rodape"))); })
         .catch(() => {});
     };
-    window.addEventListener("inprec-footer-atalhos-updated", handler);
+    carregar();
+    window.addEventListener("inprec-atalhos-updated", carregar);
     return () => {
       ativo = false;
-      window.removeEventListener("inprec-footer-atalhos-updated", handler);
+      window.removeEventListener("inprec-atalhos-updated", carregar);
     };
   }, []);
 
@@ -139,39 +137,33 @@ export default function Footer() {
               ))}
             </div>
 
-            {/* Acesso Rápido — dinâmico */}
+            {/* Acesso Rápido — dinâmico via Admin > Atalhos */}
             {(atalhos.length > 0 || contrachequeUrl) && (
               <div className="mt-5 p-3 rounded-xl bg-white/5 border border-white/10">
                 <p className="text-white/50 text-xs mb-2 font-medium">Acesso Rápido</p>
                 <div className="flex flex-wrap gap-2">
                   {atalhos.map((item) => (
                     item.externo ? (
-                      <a
-                        key={item.href}
-                        href={item.href}
-                        target="_blank"
-                        rel="nofollow noopener noreferrer"
-                        className="text-xs px-2.5 py-1 rounded-full bg-white/10 text-white/60 hover:text-white hover:bg-white/20 transition-all cursor-pointer whitespace-nowrap"
-                      >
+                      <a key={item.id} href={item.href} target="_blank" rel="nofollow noopener noreferrer"
+                        className="text-xs px-2.5 py-1 rounded-full bg-white/10 text-white/60 hover:text-white hover:bg-white/20 transition-all cursor-pointer whitespace-nowrap flex items-center gap-1">
+                        {item.iconeImg
+                          ? <img src={item.iconeImg} alt="" className="w-3 h-3 object-contain" />
+                          : <i className={`${item.icone} text-[10px]`}></i>}
                         {item.label}
                       </a>
                     ) : (
-                      <Link
-                        key={item.href + item.label}
-                        to={item.href}
-                        className="text-xs px-2.5 py-1 rounded-full bg-white/10 text-white/60 hover:text-white hover:bg-white/20 transition-all cursor-pointer whitespace-nowrap"
-                      >
+                      <Link key={item.id} to={item.href}
+                        className="text-xs px-2.5 py-1 rounded-full bg-white/10 text-white/60 hover:text-white hover:bg-white/20 transition-all cursor-pointer whitespace-nowrap flex items-center gap-1">
+                        {item.iconeImg
+                          ? <img src={item.iconeImg} alt="" className="w-3 h-3 object-contain" />
+                          : <i className={`${item.icone} text-[10px]`}></i>}
                         {item.label}
                       </Link>
                     )
                   ))}
                   {contrachequeUrl && (
-                    <a
-                      href={contrachequeUrl}
-                      target="_blank"
-                      rel="nofollow noopener noreferrer"
-                      className="text-xs px-2.5 py-1 rounded-full bg-green-500/20 text-green-400 hover:text-white hover:bg-green-500/40 transition-all cursor-pointer whitespace-nowrap flex items-center gap-1"
-                    >
+                    <a href={contrachequeUrl} target="_blank" rel="nofollow noopener noreferrer"
+                      className="text-xs px-2.5 py-1 rounded-full bg-green-500/20 text-green-400 hover:text-white hover:bg-green-500/40 transition-all cursor-pointer whitespace-nowrap flex items-center gap-1">
                       <i className="ri-file-text-line text-[10px]"></i> Contracheque
                     </a>
                   )}

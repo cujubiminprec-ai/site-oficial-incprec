@@ -29,6 +29,7 @@ import laiController from './lai.controller';
 import analyticsController from './analytics.controller';
 import chatController from './chat.controller';
 import notificacoesController from './notificacoes.controller';
+import atalhosController from './atalhos.controller';
 
 const router = Router();
 
@@ -56,5 +57,6 @@ router.use('/lai', laiController);
 router.use('/analytics', analyticsController);
 router.use('/chat', chatController);
 router.use('/notificacoes', notificacoesController);
+router.use('/atalhos', atalhosController);
 
 export default router;
