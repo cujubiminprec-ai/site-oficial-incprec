@@ -1,13 +1,33 @@
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSiteConfig } from "@/contexts/SiteConfigContext";
 import ProGestaoBadge, { hasProGestaoLocation } from "@/components/feature/ProGestaoBadge";
+import { configuracoesService, type FooterAtalhoItem, footerAtalhosPadrao } from "@/services/configuracoes.service";
 
 export default function Footer() {
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
+  const [atalhos, setAtalhos] = useState<FooterAtalhoItem[]>(footerAtalhosPadrao.itens);
   const { config } = useSiteConfig();
   const contrachequeUrl = config.contrachequeUrl || "";
+  const horario = config.horario || "Segunda a Sexta — 07h30 às 13h30";
+
+  useEffect(() => {
+    let ativo = true;
+    configuracoesService.obterFooterAtalhos()
+      .then((data) => { if (ativo && data?.itens?.length > 0) setAtalhos(data.itens); })
+      .catch(() => {});
+    const handler = () => {
+      configuracoesService.obterFooterAtalhos()
+        .then((data) => { if (data?.itens?.length > 0) setAtalhos(data.itens); })
+        .catch(() => {});
+    };
+    window.addEventListener("inprec-footer-atalhos-updated", handler);
+    return () => {
+      ativo = false;
+      window.removeEventListener("inprec-footer-atalhos-updated", handler);
+    };
+  }, []);
 
   const handleNewsletter = (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,14 +41,9 @@ export default function Footer() {
           {/* Col 1 */}
           <div>
             <div className="flex items-start gap-2.5 mb-4">
-              {/* Logo no footer */}
               {config.logoImageUrl ? (
                 <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center">
-                  <img
-                    src={config.logoImageUrl}
-                    alt={`Logo ${config.siteName}`}
-                    className="w-10 h-10 object-contain"
-                  />
+                  <img src={config.logoImageUrl} alt={`Logo ${config.siteName}`} className="w-10 h-10 object-contain" />
                 </div>
               ) : (
                 <div className="w-8 h-8 flex items-center justify-center rounded-lg flex-shrink-0" style={{ backgroundColor: config.primaryColor }}>
@@ -36,14 +51,8 @@ export default function Footer() {
                 </div>
               )}
               <div>
-                {/* Slogan como imagem no footer */}
                 {config.sloganImageUrl && config.sloganImageVisivel && config.sloganImageLocal?.includes("footer") ? (
-                  <img
-                    src={config.sloganImageUrl}
-                    alt={`Slogan ${config.siteName}`}
-                    className="h-8 w-auto object-contain mb-1 brightness-0 invert opacity-90"
-                    style={{ maxWidth: "160px" }}
-                  />
+                  <img src={config.sloganImageUrl} alt={`Slogan ${config.siteName}`} className="h-8 w-auto object-contain mb-1 brightness-0 invert opacity-90" style={{ maxWidth: "160px" }} />
                 ) : (
                   <>
                     <span className="text-white font-bold text-base" style={{ fontFamily: "'Poppins', sans-serif" }}>{config.siteName}</span>
@@ -64,7 +73,7 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Col 2 */}
+          {/* Col 2 — Navegação */}
           <div>
             <div className="text-white/40 text-xs font-semibold tracking-widest uppercase mb-4">Navegação</div>
             <div className="flex flex-col gap-2">
@@ -83,7 +92,7 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Col 3 */}
+          {/* Col 3 — Newsletter + Transparência */}
           <div>
             <div className="text-white/40 text-xs font-semibold tracking-widest uppercase mb-4">Newsletter</div>
             <p className="text-gray-400 text-sm mb-4 leading-relaxed">Receba notícias e atualizações do {config.siteName} diretamente no seu e-mail.</p>
@@ -91,14 +100,7 @@ export default function Footer() {
               <p className="text-green-400 text-sm font-medium">Inscrito com sucesso!</p>
             ) : (
               <form onSubmit={handleNewsletter} className="flex items-center border-b border-white/20 pb-2 mb-5">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="seu@email.com"
-                  required
-                  className="flex-1 bg-transparent text-sm text-white placeholder-white/30 focus:outline-none"
-                />
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" required className="flex-1 bg-transparent text-sm text-white placeholder-white/30 focus:outline-none" />
                 <button type="submit" className="w-7 h-7 flex items-center justify-center text-white/50 hover:text-white transition-colors cursor-pointer">
                   <i className="ri-arrow-right-line"></i>
                 </button>
@@ -116,7 +118,7 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Col 4 */}
+          {/* Col 4 — Contato + Acesso Rápido */}
           <div>
             <div className="text-white/40 text-xs font-semibold tracking-widest uppercase mb-4">Contato</div>
             <div className="flex flex-col gap-3">
@@ -124,46 +126,58 @@ export default function Footer() {
                 { ic: "ri-map-pin-line", text: config.endereco },
                 { ic: "ri-phone-line", text: config.telefone },
                 { ic: "ri-mail-line", text: config.email },
-                { ic: "ri-time-line", text: "Seg–Sex: 8h às 17h" },
+                { ic: "ri-time-line", text: horario },
               ].map((c) => (
-                <div key={c.text} className="flex items-start gap-2.5">
-                  <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <i className={`${c.ic} text-sm`} style={{ color: config.primaryColor }}></i>
+                c.text ? (
+                  <div key={c.ic} className="flex items-start gap-2.5">
+                    <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <i className={`${c.ic} text-sm`} style={{ color: config.primaryColor }}></i>
+                    </div>
+                    <span className="text-gray-400 text-sm">{c.text}</span>
                   </div>
-                  <span className="text-gray-400 text-sm">{c.text}</span>
-                </div>
+                ) : null
               ))}
             </div>
 
-            <div className="mt-5 p-3 rounded-xl bg-white/5 border border-white/10">
-              <p className="text-white/50 text-xs mb-2 font-medium">Acesso Rápido</p>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { label: "Ouvidoria", href: "/ouvidoria" },
-                  { label: "Pesquisa", href: "/pesquisa-satisfacao" },
-                  { label: "FAQ", href: "/perguntas-frequentes" },
-                  { label: "Previdência", href: "/previdencia" },
-                ].map((item) => (
-                  <Link
-                    key={item.href}
-                    to={item.href}
-                    className="text-xs px-2.5 py-1 rounded-full bg-white/10 text-white/60 hover:text-white hover:bg-white/20 transition-all cursor-pointer whitespace-nowrap"
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-                {contrachequeUrl && (
-                  <a
-                    href={contrachequeUrl}
-                    target="_blank"
-                    rel="nofollow noopener noreferrer"
-                    className="text-xs px-2.5 py-1 rounded-full bg-green-500/20 text-green-400 hover:text-white hover:bg-green-500/40 transition-all cursor-pointer whitespace-nowrap flex items-center gap-1"
-                  >
-                    <i className="ri-file-text-line text-[10px]"></i> Contracheque
-                  </a>
-                )}
+            {/* Acesso Rápido — dinâmico */}
+            {(atalhos.length > 0 || contrachequeUrl) && (
+              <div className="mt-5 p-3 rounded-xl bg-white/5 border border-white/10">
+                <p className="text-white/50 text-xs mb-2 font-medium">Acesso Rápido</p>
+                <div className="flex flex-wrap gap-2">
+                  {atalhos.map((item) => (
+                    item.externo ? (
+                      <a
+                        key={item.href}
+                        href={item.href}
+                        target="_blank"
+                        rel="nofollow noopener noreferrer"
+                        className="text-xs px-2.5 py-1 rounded-full bg-white/10 text-white/60 hover:text-white hover:bg-white/20 transition-all cursor-pointer whitespace-nowrap"
+                      >
+                        {item.label}
+                      </a>
+                    ) : (
+                      <Link
+                        key={item.href + item.label}
+                        to={item.href}
+                        className="text-xs px-2.5 py-1 rounded-full bg-white/10 text-white/60 hover:text-white hover:bg-white/20 transition-all cursor-pointer whitespace-nowrap"
+                      >
+                        {item.label}
+                      </Link>
+                    )
+                  ))}
+                  {contrachequeUrl && (
+                    <a
+                      href={contrachequeUrl}
+                      target="_blank"
+                      rel="nofollow noopener noreferrer"
+                      className="text-xs px-2.5 py-1 rounded-full bg-green-500/20 text-green-400 hover:text-white hover:bg-green-500/40 transition-all cursor-pointer whitespace-nowrap flex items-center gap-1"
+                    >
+                      <i className="ri-file-text-line text-[10px]"></i> Contracheque
+                    </a>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -172,7 +186,6 @@ export default function Footer() {
           <p className="text-white/40 text-xs font-semibold tracking-widest uppercase">Certificações e Selos</p>
           <div className="flex flex-wrap items-center gap-4">
             {hasProGestaoLocation(config, "footer") && <ProGestaoBadge config={config} variant="footer" />}
-            {/* Acesso Gov.br */}
             <a
               href="https://www.gov.br/previdencia"
               target="_blank"

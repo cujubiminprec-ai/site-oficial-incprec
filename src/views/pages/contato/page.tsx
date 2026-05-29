@@ -69,7 +69,7 @@ export default function ContatoPage() {
                 { icon: "ri-map-pin-line", title: "Endereço", text: config.endereco },
                 { icon: "ri-phone-line", title: "Telefone", text: config.telefone },
                 { icon: "ri-mail-line", title: "E-mail", text: config.email },
-                { icon: "ri-time-line", title: "Horário", text: "Segunda a Sexta\n8h às 17h" },
+                { icon: "ri-time-line", title: "Horário", text: config.horario || "Segunda a Sexta — 07h30 às 13h30" },
                 { icon: "ri-whatsapp-line", title: "WhatsApp", text: `+${config.whatsapp}` },
               ].map((item) => (
                 <div key={item.title} className="flex items-start gap-3 p-4 bg-white rounded-xl border border-gray-100">

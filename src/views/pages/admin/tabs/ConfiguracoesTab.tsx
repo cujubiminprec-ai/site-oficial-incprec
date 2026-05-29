@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useSiteConfig, SiteConfig } from "@/contexts/SiteConfigContext";
-import { configuracoesService, type PrevidenciaStats, previdenciaStatsDefault, type ProgestaoIndicadores, progestaoIndicadoresDefault } from "@/services/configuracoes.service";
+import { configuracoesService, type PrevidenciaStats, previdenciaStatsDefault, type ProgestaoIndicadores, progestaoIndicadoresDefault, type FooterAtalhoItem, footerAtalhosPadrao } from "@/services/configuracoes.service";
 
 export default function ConfiguracoesTab() {
   const { config, updateConfig } = useSiteConfig();
@@ -68,6 +68,43 @@ export default function ConfiguracoesTab() {
       itens: prev.itens.map((item, idx) => idx === i ? { ...item, [field]: val } : item),
     }));
   };
+
+  // ── Atalhos de Acesso Rápido · Rodapé ───────────────────────────────────
+  const [atalhos, setAtalhos] = useState<FooterAtalhoItem[]>(footerAtalhosPadrao.itens);
+  const [atalhosSaved, setAtalhosSaved] = useState(false);
+  const [atalhosSaving, setAtalhosSaving] = useState(false);
+  const [novoLabel, setNovoLabel] = useState("");
+  const [novoHref, setNovoHref] = useState("");
+  const [novoExterno, setNovoExterno] = useState(false);
+
+  useEffect(() => {
+    configuracoesService.obterFooterAtalhos().then((d) => { if (d?.itens?.length > 0) setAtalhos(d.itens); }).catch(() => {});
+  }, []);
+
+  const handleSaveAtalhos = async () => {
+    setAtalhosSaving(true);
+    try {
+      await configuracoesService.salvarFooterAtalhos({ itens: atalhos });
+      window.dispatchEvent(new Event("inprec-footer-atalhos-updated"));
+      setAtalhosSaved(true);
+      setTimeout(() => setAtalhosSaved(false), 2500);
+    } finally {
+      setAtalhosSaving(false);
+    }
+  };
+
+  const addAtalho = () => {
+    if (!novoLabel.trim() || !novoHref.trim()) return;
+    setAtalhos((prev) => [...prev, { label: novoLabel.trim(), href: novoHref.trim(), externo: novoExterno }]);
+    setNovoLabel("");
+    setNovoHref("");
+    setNovoExterno(false);
+  };
+
+  const removeAtalho = (i: number) => setAtalhos((prev) => prev.filter((_, idx) => idx !== i));
+
+  const updAtalho = (i: number, field: keyof FooterAtalhoItem, val: string | boolean) =>
+    setAtalhos((prev) => prev.map((item, idx) => idx === i ? { ...item, [field]: val } : item));
 
   const readFileAsDataURL = useCallback((file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -1081,6 +1118,114 @@ export default function ConfiguracoesTab() {
           >
             {pgIndSaving ? <i className="ri-loader-4-line animate-spin"></i> : <i className="ri-save-line"></i>}
             {pgIndSaving ? "Salvando..." : "Salvar Indicadores"}
+          </button>
+        </div>
+
+        {/* ── Atalhos de Acesso Rápido · Rodapé ──────────────────────────── */}
+        <div className="rounded-2xl border border-gray-100 bg-white p-6">
+          <div className="mb-5">
+            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+              <i className="ri-links-line" style={{ color: config.primaryColor }}></i>
+              Atalhos de Acesso Rápido · Rodapé
+            </h2>
+            <p className="text-xs text-gray-400 mt-1">
+              Links exibidos na seção "Acesso Rápido" do rodapé. Adicione, edite ou remova à vontade.
+            </p>
+          </div>
+
+          {/* Lista de atalhos existentes */}
+          <div className="flex flex-col gap-2 mb-4">
+            {atalhos.length === 0 && (
+              <p className="text-xs text-gray-400 py-3 text-center border border-dashed border-gray-200 rounded-xl">
+                Nenhum atalho cadastrado. Adicione abaixo.
+              </p>
+            )}
+            {atalhos.map((item, i) => (
+              <div key={i} className="grid grid-cols-[1fr_1fr_auto_auto] items-center gap-2 p-3 rounded-xl border border-gray-100 bg-gray-50">
+                <input
+                  value={item.label}
+                  onChange={(e) => updAtalho(i, "label", e.target.value)}
+                  placeholder="Rótulo"
+                  className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none bg-white"
+                />
+                <input
+                  value={item.href}
+                  onChange={(e) => updAtalho(i, "href", e.target.value)}
+                  placeholder="/rota ou https://..."
+                  className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-mono focus:outline-none bg-white"
+                />
+                <div
+                  className="flex items-center gap-1.5 cursor-pointer px-2 py-2 rounded-lg bg-white border border-gray-200 whitespace-nowrap"
+                  onClick={() => updAtalho(i, "externo", !item.externo)}
+                  title="Link externo (abre em nova aba)"
+                >
+                  <div className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0" style={{ backgroundColor: item.externo ? config.primaryColor : "#E5E7EB" }}>
+                    {item.externo && <i className="ri-check-line text-white text-[10px]"></i>}
+                  </div>
+                  <span className="text-xs text-gray-500">Externo</span>
+                </div>
+                <button
+                  onClick={() => removeAtalho(i)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-50 hover:text-red-500 text-gray-400 transition-colors cursor-pointer flex-shrink-0"
+                  title="Remover"
+                >
+                  <i className="ri-delete-bin-line text-sm"></i>
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {/* Adicionar novo atalho */}
+          <div className="grid grid-cols-[1fr_1fr_auto_auto] items-center gap-2 p-3 rounded-xl border border-dashed border-gray-200 bg-gray-50/50 mb-4">
+            <input
+              value={novoLabel}
+              onChange={(e) => setNovoLabel(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addAtalho()}
+              placeholder="Rótulo (ex: Ouvidoria)"
+              className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none bg-white"
+            />
+            <input
+              value={novoHref}
+              onChange={(e) => setNovoHref(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addAtalho()}
+              placeholder="/rota ou https://..."
+              className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-mono focus:outline-none bg-white"
+            />
+            <div
+              className="flex items-center gap-1.5 cursor-pointer px-2 py-2 rounded-lg bg-white border border-gray-200 whitespace-nowrap"
+              onClick={() => setNovoExterno(!novoExterno)}
+              title="Link externo"
+            >
+              <div className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0" style={{ backgroundColor: novoExterno ? config.primaryColor : "#E5E7EB" }}>
+                {novoExterno && <i className="ri-check-line text-white text-[10px]"></i>}
+              </div>
+              <span className="text-xs text-gray-500">Externo</span>
+            </div>
+            <button
+              onClick={addAtalho}
+              disabled={!novoLabel.trim() || !novoHref.trim()}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-white cursor-pointer disabled:opacity-40 flex-shrink-0"
+              style={{ backgroundColor: config.primaryColor }}
+              title="Adicionar atalho"
+            >
+              <i className="ri-add-line text-sm"></i>
+            </button>
+          </div>
+
+          {atalhosSaved && (
+            <p className="text-xs text-green-600 flex items-center gap-1 mb-3">
+              <i className="ri-check-line"></i> Atalhos salvos! O rodapé foi atualizado.
+            </p>
+          )}
+
+          <button
+            onClick={handleSaveAtalhos}
+            disabled={atalhosSaving}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-50"
+            style={{ backgroundColor: config.primaryColor }}
+          >
+            {atalhosSaving ? <i className="ri-loader-4-line animate-spin"></i> : <i className="ri-save-line"></i>}
+            {atalhosSaving ? "Salvando..." : "Salvar Atalhos"}
           </button>
         </div>
 

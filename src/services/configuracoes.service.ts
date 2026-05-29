@@ -36,6 +36,25 @@ export interface ProgestaoIndicadores {
   itens: ProgestaoIndicadorItem[];
 }
 
+export interface FooterAtalhoItem {
+  label: string;
+  href: string;
+  externo?: boolean;
+}
+
+export interface FooterAtalhos {
+  itens: FooterAtalhoItem[];
+}
+
+export const footerAtalhosPadrao: FooterAtalhos = {
+  itens: [
+    { label: "Ouvidoria", href: "/ouvidoria" },
+    { label: "Pesquisa", href: "/pesquisa-satisfacao" },
+    { label: "FAQ", href: "/perguntas-frequentes" },
+    { label: "Previdência", href: "/previdencia" },
+  ],
+};
+
 export const progestaoIndicadoresDefault: ProgestaoIndicadores = {
   ativo: false,
   itens: [
@@ -377,6 +396,19 @@ export const configuracoesService = {
     return apiFetch<ProgestaoIndicadores>("/configuracoes/app/progestao_indicadores", {
       method: "PUT",
       body: indicadores,
+      token,
+    });
+  },
+
+  async obterFooterAtalhos(): Promise<FooterAtalhos> {
+    return apiFetch<FooterAtalhos>("/configuracoes/app/footer_atalhos").catch(() => footerAtalhosPadrao);
+  },
+
+  async salvarFooterAtalhos(atalhos: FooterAtalhos): Promise<FooterAtalhos> {
+    const token = getToken();
+    return apiFetch<FooterAtalhos>("/configuracoes/app/footer_atalhos", {
+      method: "PUT",
+      body: atalhos,
       token,
     });
   },
