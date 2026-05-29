@@ -1,4 +1,5 @@
-import { BrowserRouter } from "react-router-dom";
+import { BrowserRouter, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 import { AppRoutes } from "./router";
 import { SiteConfigProvider } from "@/contexts/SiteConfigContext";
 import { AdminAuthProvider } from "@/contexts/AdminAuthContext";
@@ -8,6 +9,14 @@ import AnalyticsTracker from "@/components/feature/AnalyticsTracker";
 
 declare const __BASE_PATH__: string;
 
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [pathname]);
+  return null;
+}
+
 export default function App() {
   return (
     <SiteConfigProvider>
@@ -15,6 +24,7 @@ export default function App() {
         <AdminAuthProvider>
           <NotificacoesProvider>
             <BrowserRouter basename={__BASE_PATH__}>
+              <ScrollToTop />
               <AnalyticsTracker />
               <AppRoutes />
             </BrowserRouter>
