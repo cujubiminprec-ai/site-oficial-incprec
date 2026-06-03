@@ -337,7 +337,9 @@ export const configuracoesService = {
   },
 
   async obterFloatingButtons(): Promise<FloatingButtonConfig[]> {
-    return apiFetch<FloatingButtonConfig[]>("/configuracoes/app/floating_buttons").catch(() => []);
+    return apiFetch<FloatingButtonConfig[] | null>("/configuracoes/app/floating_buttons")
+      .then((d) => d ?? [])
+      .catch(() => []);
   },
 
   async salvarFloatingButtons(buttons: FloatingButtonConfig[]): Promise<FloatingButtonConfig[]> {
@@ -350,7 +352,9 @@ export const configuracoesService = {
   },
 
   async listarHomeSections(): Promise<HomeSectionConfig[]> {
-    return apiFetch<HomeSectionConfig[]>("/configuracoes/app/home_sections").catch(() => []);
+    return apiFetch<HomeSectionConfig[] | null>("/configuracoes/app/home_sections")
+      .then((d) => d ?? [])
+      .catch(() => []);
   },
 
   async salvarHomeSections(sections: HomeSectionConfig[]): Promise<HomeSectionConfig[]> {
@@ -396,7 +400,9 @@ export const configuracoesService = {
   },
 
   async obterPrevidenciaStats(): Promise<PrevidenciaStats> {
-    return apiFetch<PrevidenciaStats>("/configuracoes/app/previdencia_stats").catch(() => previdenciaStatsDefault);
+    return apiFetch<PrevidenciaStats | null>("/configuracoes/app/previdencia_stats")
+      .then((d) => d ?? previdenciaStatsDefault)
+      .catch(() => previdenciaStatsDefault);
   },
 
   async salvarPrevidenciaStats(stats: PrevidenciaStats): Promise<PrevidenciaStats> {
@@ -409,7 +415,9 @@ export const configuracoesService = {
   },
 
   async obterServicosStats(): Promise<ServicosStats> {
-    return apiFetch<ServicosStats>("/configuracoes/app/servicos_stats").catch(() => servicosStatsDefault);
+    return apiFetch<ServicosStats | null>("/configuracoes/app/servicos_stats")
+      .then((d) => d ?? servicosStatsDefault)
+      .catch(() => servicosStatsDefault);
   },
 
   async salvarServicosStats(stats: ServicosStats): Promise<ServicosStats> {
@@ -418,7 +426,9 @@ export const configuracoesService = {
   },
 
   async obterProgestaoIndicadores(): Promise<ProgestaoIndicadores> {
-    return apiFetch<ProgestaoIndicadores>("/configuracoes/app/progestao_indicadores").catch(() => progestaoIndicadoresDefault);
+    return apiFetch<ProgestaoIndicadores | null>("/configuracoes/app/progestao_indicadores")
+      .then((d) => d ?? progestaoIndicadoresDefault)
+      .catch(() => progestaoIndicadoresDefault);
   },
 
   async salvarProgestaoIndicadores(indicadores: ProgestaoIndicadores): Promise<ProgestaoIndicadores> {
@@ -431,7 +441,9 @@ export const configuracoesService = {
   },
 
   async obterFooterAtalhos(): Promise<FooterAtalhos> {
-    return apiFetch<FooterAtalhos>("/configuracoes/app/footer_atalhos").catch(() => footerAtalhosPadrao);
+    return apiFetch<FooterAtalhos | null>("/configuracoes/app/footer_atalhos")
+      .then((d) => d ?? footerAtalhosPadrao)
+      .catch(() => footerAtalhosPadrao);
   },
 
   async salvarFooterAtalhos(atalhos: FooterAtalhos): Promise<FooterAtalhos> {
