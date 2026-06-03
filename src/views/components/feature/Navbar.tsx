@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useSiteConfig } from "@/contexts/SiteConfigContext";
+import { useAccessibility } from "@/contexts/AccessibilityContext";
 import { MenuItem, defaultMenuItems } from "@/pages/admin/tabs/MenuNavegacaoTab";
 import { menuService } from "@/services/menu.service";
 import ProGestaoBadge, { hasProGestaoLocation } from "@/components/feature/ProGestaoBadge";
@@ -15,6 +16,7 @@ export default function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const location = useLocation();
   const { config } = useSiteConfig();
+  const { increaseFontSize, decreaseFontSize, resetFontSize, toggleHighContrast, highContrast, fontSize } = useAccessibility();
   const contrachequeUrl = config.contrachequeUrl || "";
   const redes = {
     facebook: config.redeFacebook || "",
@@ -150,10 +152,10 @@ export default function Navbar() {
       className={`fixed left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b transition-all duration-500 ${
         scrolled ? "border-gray-100 shadow-[0_4px_18px_rgba(0,0,0,0.08)]" : "border-white/70 shadow-[0_4px_18px_rgba(0,0,0,0.06)]"
       }`}
-      style={{ top: "36px" }}
+      style={{ top: 0 }}
     >
-      {/* Barra Superior */}
-      {showTopbar && !scrolled && (
+      {/* ── Barra Superior (desktop) – não scrolled ── */}
+      {!scrolled && (
         <div
           className="w-full hidden md:flex items-center justify-between px-6 py-1.5 text-xs"
           style={{ backgroundColor: "rgba(0,0,0,0.35)" }}
@@ -165,9 +167,7 @@ export default function Navbar() {
                 href={`mailto:${config.email}`}
                 className="flex items-center gap-1.5 text-white/85 hover:text-white transition-colors cursor-pointer whitespace-nowrap"
               >
-                <div className="w-4 h-4 flex items-center justify-center flex-shrink-0">
-                  <i className="ri-mail-line text-xs"></i>
-                </div>
+                <i className="ri-mail-line text-xs"></i>
                 <span>{config.email}</span>
               </a>
             )}
@@ -176,69 +176,106 @@ export default function Navbar() {
                 href={`tel:${config.telefone}`}
                 className="flex items-center gap-1.5 text-white/85 hover:text-white transition-colors cursor-pointer whitespace-nowrap"
               >
-                <div className="w-4 h-4 flex items-center justify-center flex-shrink-0">
-                  <i className="ri-phone-line text-xs"></i>
-                </div>
+                <i className="ri-phone-line text-xs"></i>
                 <span>{config.telefone}</span>
               </a>
             )}
           </div>
 
-          {/* Direita: redes sociais + mapa do site */}
-          <div className="flex items-center gap-3">
+          {/* Direita: acessibilidade + redes sociais + mapa do site */}
+          <div className="flex items-center gap-2">
+
+            {/* Grupo A- / A / A+ */}
+            <div
+              className="flex items-center flex-shrink-0"
+              style={{ backgroundColor: "rgba(255,255,255,0.12)", borderRadius: "5px" }}
+              role="group"
+              aria-label="Tamanho do texto"
+            >
+              <button
+                onClick={decreaseFontSize}
+                disabled={fontSize <= 80}
+                title="Diminuir texto"
+                aria-label="Diminuir tamanho do texto"
+                className="h-5 px-2 flex items-center justify-center text-white font-bold text-[10px] cursor-pointer hover:bg-white/20 disabled:opacity-40 disabled:cursor-not-allowed rounded-l-md select-none transition-all"
+                style={{ fontFamily: "Arial, sans-serif" }}
+              >
+                A<sup style={{ fontSize: "7px", lineHeight: 0 }}>−</sup>
+              </button>
+              <span className="w-px h-3 bg-white/20 flex-shrink-0" />
+              <button
+                onClick={resetFontSize}
+                title="Tamanho padrão"
+                aria-label="Redefinir tamanho do texto"
+                className="h-5 px-1.5 flex items-center justify-center text-white font-bold text-[10px] cursor-pointer hover:bg-white/20 select-none transition-all"
+                style={{ fontFamily: "Arial, sans-serif" }}
+              >
+                A
+              </button>
+              <span className="w-px h-3 bg-white/20 flex-shrink-0" />
+              <button
+                onClick={increaseFontSize}
+                disabled={fontSize >= 150}
+                title="Aumentar texto"
+                aria-label="Aumentar tamanho do texto"
+                className="h-5 px-2 flex items-center justify-center text-white font-bold text-[11px] cursor-pointer hover:bg-white/20 disabled:opacity-40 disabled:cursor-not-allowed rounded-r-md select-none transition-all"
+                style={{ fontFamily: "Arial, sans-serif" }}
+              >
+                A<sup style={{ fontSize: "7px", lineHeight: 0 }}>+</sup>
+              </button>
+            </div>
+
+            {/* Contraste */}
+            <button
+              onClick={toggleHighContrast}
+              aria-pressed={highContrast}
+              aria-label={highContrast ? "Desativar alto contraste" : "Ativar alto contraste"}
+              title="Alternar contraste"
+              className="h-5 px-2 flex items-center gap-1 text-white text-[10px] font-bold cursor-pointer hover:bg-white/20 select-none rounded whitespace-nowrap transition-all flex-shrink-0"
+              style={{ backgroundColor: highContrast ? "rgba(255,255,255,0.28)" : "rgba(255,255,255,0.12)" }}
+            >
+              {highContrast ? "Contraste Alto" : "Contraste Claro"}
+              <i className={`text-[10px] ${highContrast ? "ri-sun-line" : "ri-settings-3-line"}`}></i>
+            </button>
+
+            {/* Separador */}
+            <div className="w-px h-3 bg-white/25 flex-shrink-0"></div>
+
+            {/* Redes Sociais */}
             {hasRedes && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
                 {redes.facebook && (
-                  <a
-                    href={redes.facebook}
-                    target="_blank"
-                    rel="nofollow noopener noreferrer"
-                    className="w-6 h-6 flex items-center justify-center rounded text-white/75 hover:text-white transition-colors cursor-pointer"
-                  >
-                    <i className="ri-facebook-fill text-sm"></i>
+                  <a href={redes.facebook} target="_blank" rel="nofollow noopener noreferrer"
+                    className="w-5 h-5 flex items-center justify-center rounded text-white/75 hover:text-white transition-colors cursor-pointer">
+                    <i className="ri-facebook-fill text-xs"></i>
                   </a>
                 )}
                 {redes.instagram && (
-                  <a
-                    href={redes.instagram}
-                    target="_blank"
-                    rel="nofollow noopener noreferrer"
-                    className="w-6 h-6 flex items-center justify-center rounded text-white/75 hover:text-white transition-colors cursor-pointer"
-                  >
-                    <i className="ri-instagram-line text-sm"></i>
+                  <a href={redes.instagram} target="_blank" rel="nofollow noopener noreferrer"
+                    className="w-5 h-5 flex items-center justify-center rounded text-white/75 hover:text-white transition-colors cursor-pointer">
+                    <i className="ri-instagram-line text-xs"></i>
                   </a>
                 )}
                 {redes.youtube && (
-                  <a
-                    href={redes.youtube}
-                    target="_blank"
-                    rel="nofollow noopener noreferrer"
-                    className="w-6 h-6 flex items-center justify-center rounded text-white/75 hover:text-white transition-colors cursor-pointer"
-                  >
-                    <i className="ri-youtube-fill text-sm"></i>
+                  <a href={redes.youtube} target="_blank" rel="nofollow noopener noreferrer"
+                    className="w-5 h-5 flex items-center justify-center rounded text-white/75 hover:text-white transition-colors cursor-pointer">
+                    <i className="ri-youtube-fill text-xs"></i>
                   </a>
                 )}
                 {redes.linkedin && (
-                  <a
-                    href={redes.linkedin}
-                    target="_blank"
-                    rel="nofollow noopener noreferrer"
-                    className="w-6 h-6 flex items-center justify-center rounded text-white/75 hover:text-white transition-colors cursor-pointer"
-                  >
-                    <i className="ri-linkedin-fill text-sm"></i>
+                  <a href={redes.linkedin} target="_blank" rel="nofollow noopener noreferrer"
+                    className="w-5 h-5 flex items-center justify-center rounded text-white/75 hover:text-white transition-colors cursor-pointer">
+                    <i className="ri-linkedin-fill text-xs"></i>
                   </a>
                 )}
               </div>
             )}
-            {hasRedes && config.topbarMapaSiteVisivel && <div className="w-px h-3 bg-white/30"></div>}
+
+            {config.topbarMapaSiteVisivel && <div className="w-px h-3 bg-white/25 flex-shrink-0"></div>}
             {config.topbarMapaSiteVisivel && (
-              <Link
-                to="/mapa-do-site"
-                className="flex items-center gap-1.5 text-white/75 hover:text-white transition-colors cursor-pointer whitespace-nowrap"
-              >
-                <div className="w-4 h-4 flex items-center justify-center flex-shrink-0">
-                  <i className="ri-map-2-line text-xs"></i>
-                </div>
+              <Link to="/mapa-do-site"
+                className="flex items-center gap-1 text-white/75 hover:text-white transition-colors cursor-pointer whitespace-nowrap">
+                <i className="ri-map-2-line text-xs"></i>
                 <span>Mapa do Site</span>
               </Link>
             )}
@@ -246,90 +283,123 @@ export default function Navbar() {
         </div>
       )}
 
-      {/* Topbar scrolled (fundo branco) */}
-      {showTopbar && scrolled && (
+      {/* ── Barra Superior (desktop) – scrolled ── */}
+      {scrolled && (
         <div
           className="w-full hidden md:flex items-center justify-between px-6 py-1.5 text-xs border-b"
           style={{ backgroundColor: "#f9fafb", borderColor: "#f0f0f0" }}
         >
+          {/* Esquerda: email e telefone */}
           <div className="flex items-center gap-4">
             {config.topbarEmailVisivel && config.email && (
-              <a
-                href={`mailto:${config.email}`}
-                className="flex items-center gap-1.5 text-gray-500 hover:text-gray-800 transition-colors cursor-pointer whitespace-nowrap"
-              >
-                <div className="w-4 h-4 flex items-center justify-center flex-shrink-0">
-                  <i className="ri-mail-line text-xs" style={{ color: config.primaryColor }}></i>
-                </div>
+              <a href={`mailto:${config.email}`}
+                className="flex items-center gap-1.5 text-gray-500 hover:text-gray-800 transition-colors cursor-pointer whitespace-nowrap">
+                <i className="ri-mail-line text-xs" style={{ color: config.primaryColor }}></i>
                 <span>{config.email}</span>
               </a>
             )}
             {config.topbarTelefoneVisivel && config.telefone && (
-              <a
-                href={`tel:${config.telefone}`}
-                className="flex items-center gap-1.5 text-gray-500 hover:text-gray-800 transition-colors cursor-pointer whitespace-nowrap"
-              >
-                <div className="w-4 h-4 flex items-center justify-center flex-shrink-0">
-                  <i className="ri-phone-line text-xs" style={{ color: config.primaryColor }}></i>
-                </div>
+              <a href={`tel:${config.telefone}`}
+                className="flex items-center gap-1.5 text-gray-500 hover:text-gray-800 transition-colors cursor-pointer whitespace-nowrap">
+                <i className="ri-phone-line text-xs" style={{ color: config.primaryColor }}></i>
                 <span>{config.telefone}</span>
               </a>
             )}
           </div>
-          <div className="flex items-center gap-3">
+
+          {/* Direita: acessibilidade + redes + mapa */}
+          <div className="flex items-center gap-2">
+
+            {/* Grupo A- / A / A+ */}
+            <div
+              className="flex items-center flex-shrink-0 bg-gray-100 rounded-md"
+              role="group"
+              aria-label="Tamanho do texto"
+            >
+              <button
+                onClick={decreaseFontSize}
+                disabled={fontSize <= 80}
+                title="Diminuir texto"
+                aria-label="Diminuir tamanho do texto"
+                className="h-5 px-2 flex items-center justify-center text-gray-600 font-bold text-[10px] cursor-pointer hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed rounded-l-md select-none transition-all"
+                style={{ fontFamily: "Arial, sans-serif" }}
+              >
+                A<sup style={{ fontSize: "7px", lineHeight: 0 }}>−</sup>
+              </button>
+              <span className="w-px h-3 bg-gray-300 flex-shrink-0" />
+              <button
+                onClick={resetFontSize}
+                title="Tamanho padrão"
+                aria-label="Redefinir tamanho do texto"
+                className="h-5 px-1.5 flex items-center justify-center text-gray-600 font-bold text-[10px] cursor-pointer hover:bg-gray-200 select-none transition-all"
+                style={{ fontFamily: "Arial, sans-serif" }}
+              >
+                A
+              </button>
+              <span className="w-px h-3 bg-gray-300 flex-shrink-0" />
+              <button
+                onClick={increaseFontSize}
+                disabled={fontSize >= 150}
+                title="Aumentar texto"
+                aria-label="Aumentar tamanho do texto"
+                className="h-5 px-2 flex items-center justify-center text-gray-600 font-bold text-[11px] cursor-pointer hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed rounded-r-md select-none transition-all"
+                style={{ fontFamily: "Arial, sans-serif" }}
+              >
+                A<sup style={{ fontSize: "7px", lineHeight: 0 }}>+</sup>
+              </button>
+            </div>
+
+            {/* Contraste */}
+            <button
+              onClick={toggleHighContrast}
+              aria-pressed={highContrast}
+              aria-label={highContrast ? "Desativar alto contraste" : "Ativar alto contraste"}
+              title="Alternar contraste"
+              className="h-5 px-2 flex items-center gap-1 text-gray-600 text-[10px] font-bold cursor-pointer hover:bg-gray-200 select-none rounded whitespace-nowrap transition-all flex-shrink-0"
+              style={highContrast ? { backgroundColor: "#e5e7eb" } : {}}
+            >
+              {highContrast ? "Contraste Alto" : "Contraste Claro"}
+              <i className={`text-[10px] ${highContrast ? "ri-sun-line" : "ri-settings-3-line"}`} style={{ color: config.primaryColor }}></i>
+            </button>
+
+            {/* Separador */}
+            <div className="w-px h-3 bg-gray-200 flex-shrink-0"></div>
+
+            {/* Redes Sociais */}
             {hasRedes && (
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1">
                 {redes.facebook && (
-                  <a
-                    href={redes.facebook}
-                    target="_blank"
-                    rel="nofollow noopener noreferrer"
-                    className="w-6 h-6 flex items-center justify-center rounded text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
-                  >
-                    <i className="ri-facebook-fill text-sm"></i>
+                  <a href={redes.facebook} target="_blank" rel="nofollow noopener noreferrer"
+                    className="w-5 h-5 flex items-center justify-center rounded text-gray-400 hover:text-gray-700 transition-colors cursor-pointer">
+                    <i className="ri-facebook-fill text-xs"></i>
                   </a>
                 )}
                 {redes.instagram && (
-                  <a
-                    href={redes.instagram}
-                    target="_blank"
-                    rel="nofollow noopener noreferrer"
-                    className="w-6 h-6 flex items-center justify-center rounded text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
-                  >
-                    <i className="ri-instagram-line text-sm"></i>
+                  <a href={redes.instagram} target="_blank" rel="nofollow noopener noreferrer"
+                    className="w-5 h-5 flex items-center justify-center rounded text-gray-400 hover:text-gray-700 transition-colors cursor-pointer">
+                    <i className="ri-instagram-line text-xs"></i>
                   </a>
                 )}
                 {redes.youtube && (
-                  <a
-                    href={redes.youtube}
-                    target="_blank"
-                    rel="nofollow noopener noreferrer"
-                    className="w-6 h-6 flex items-center justify-center rounded text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
-                  >
-                    <i className="ri-youtube-fill text-sm"></i>
+                  <a href={redes.youtube} target="_blank" rel="nofollow noopener noreferrer"
+                    className="w-5 h-5 flex items-center justify-center rounded text-gray-400 hover:text-gray-700 transition-colors cursor-pointer">
+                    <i className="ri-youtube-fill text-xs"></i>
                   </a>
                 )}
                 {redes.linkedin && (
-                  <a
-                    href={redes.linkedin}
-                    target="_blank"
-                    rel="nofollow noopener noreferrer"
-                    className="w-6 h-6 flex items-center justify-center rounded text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
-                  >
-                    <i className="ri-linkedin-fill text-sm"></i>
+                  <a href={redes.linkedin} target="_blank" rel="nofollow noopener noreferrer"
+                    className="w-5 h-5 flex items-center justify-center rounded text-gray-400 hover:text-gray-700 transition-colors cursor-pointer">
+                    <i className="ri-linkedin-fill text-xs"></i>
                   </a>
                 )}
               </div>
             )}
-            {hasRedes && config.topbarMapaSiteVisivel && <div className="w-px h-3 bg-gray-200"></div>}
+
+            {config.topbarMapaSiteVisivel && <div className="w-px h-3 bg-gray-200 flex-shrink-0"></div>}
             {config.topbarMapaSiteVisivel && (
-              <Link
-                to="/mapa-do-site"
-                className="flex items-center gap-1.5 text-gray-500 hover:text-gray-800 transition-colors cursor-pointer whitespace-nowrap"
-              >
-                <div className="w-4 h-4 flex items-center justify-center flex-shrink-0">
-                  <i className="ri-map-2-line text-xs" style={{ color: config.primaryColor }}></i>
-                </div>
+              <Link to="/mapa-do-site"
+                className="flex items-center gap-1 text-gray-500 hover:text-gray-800 transition-colors cursor-pointer whitespace-nowrap">
+                <i className="ri-map-2-line text-xs" style={{ color: config.primaryColor }}></i>
                 <span>Mapa do Site</span>
               </Link>
             )}
@@ -706,6 +776,58 @@ export default function Navbar() {
               )}
             </div>
           ))}
+          {/* Acessibilidade no menu mobile */}
+          <div className="mx-3 mt-2 mb-1 px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-100">
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Acessibilidade</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* A- A A+ */}
+              <div className="flex items-center rounded-lg overflow-hidden border border-gray-200 bg-white">
+                <button
+                  onClick={decreaseFontSize}
+                  disabled={fontSize <= 80}
+                  title="Diminuir texto"
+                  aria-label="Diminuir tamanho do texto"
+                  className="h-7 px-2.5 flex items-center justify-center text-gray-700 font-bold text-xs cursor-pointer hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed select-none"
+                  style={{ fontFamily: "Arial, sans-serif" }}
+                >
+                  A<sup style={{ fontSize: "7px", lineHeight: 0 }}>−</sup>
+                </button>
+                <span className="w-px h-4 bg-gray-200" />
+                <button
+                  onClick={resetFontSize}
+                  title="Tamanho padrão"
+                  aria-label="Redefinir tamanho do texto"
+                  className="h-7 px-2 flex items-center justify-center text-gray-700 font-bold text-xs cursor-pointer hover:bg-gray-100 select-none"
+                  style={{ fontFamily: "Arial, sans-serif" }}
+                >
+                  A
+                </button>
+                <span className="w-px h-4 bg-gray-200" />
+                <button
+                  onClick={increaseFontSize}
+                  disabled={fontSize >= 150}
+                  title="Aumentar texto"
+                  aria-label="Aumentar tamanho do texto"
+                  className="h-7 px-2.5 flex items-center justify-center text-gray-700 font-bold text-sm cursor-pointer hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed select-none"
+                  style={{ fontFamily: "Arial, sans-serif" }}
+                >
+                  A<sup style={{ fontSize: "7px", lineHeight: 0 }}>+</sup>
+                </button>
+              </div>
+              {/* Contraste */}
+              <button
+                onClick={toggleHighContrast}
+                aria-pressed={highContrast}
+                aria-label={highContrast ? "Desativar alto contraste" : "Ativar alto contraste"}
+                className="h-7 px-3 flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors select-none whitespace-nowrap"
+                style={highContrast ? { backgroundColor: "#e5e7eb" } : {}}
+              >
+                {highContrast ? "Contraste Alto" : "Contraste Claro"}
+                <i className={`text-xs ${highContrast ? "ri-sun-line" : "ri-settings-3-line"}`} style={{ color: config.primaryColor }}></i>
+              </button>
+            </div>
+          </div>
+
           <div className="flex gap-2 mt-2 px-3 pb-2">
             <Link
               to="/admin/login"

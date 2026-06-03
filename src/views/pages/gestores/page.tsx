@@ -286,7 +286,7 @@ export default function GestoresPage() {
       </section>
 
       {/* Sub-menu de grupos */}
-      <section className="sticky top-16 md:top-20 z-40 bg-white border-b border-gray-100">
+      <section className="sticky top-[72px] md:top-[116px] z-40 bg-white border-b border-gray-100">
         <div className="max-w-screen-xl mx-auto px-2 md:px-4">
           <div className="flex overflow-x-auto gap-0 hide-scrollbar">
             {grupos.map((g) => (

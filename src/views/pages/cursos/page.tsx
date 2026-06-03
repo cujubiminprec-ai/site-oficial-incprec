@@ -344,7 +344,7 @@ export default function CursosPage() {
       </section>
 
       {/* Calendário de Meses */}
-      <section className="bg-white border-b border-gray-100 sticky top-16 md:top-20 z-40">
+      <section className="bg-white border-b border-gray-100 sticky top-[72px] md:top-[116px] z-40">
         <div className="max-w-screen-xl mx-auto px-4 md:px-8 py-3 flex items-center gap-2 overflow-x-auto">
           <span className="text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap mr-2">Mês:</span>
           <button

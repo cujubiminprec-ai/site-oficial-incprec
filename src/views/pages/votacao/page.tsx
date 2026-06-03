@@ -254,7 +254,7 @@ export default function VotacaoPage() {
       </div>
 
       {/* Filtros + Busca */}
-      <div className="sticky top-16 z-30 bg-white border-b border-gray-100">
+      <div className="sticky top-[72px] md:top-[116px] z-30 bg-white border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-6 py-3 flex flex-col sm:flex-row gap-3 items-start sm:items-center">
           {/* Search */}
           <div className="relative flex-1 max-w-xs">

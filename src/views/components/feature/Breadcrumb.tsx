@@ -86,7 +86,7 @@ export default function Breadcrumb() {
   return (
     <nav
       aria-label="Breadcrumb"
-      className="w-full bg-white border-b border-gray-200/80 shadow-sm mt-16 md:mt-20"
+      className="w-full bg-white border-b border-gray-200/80 shadow-sm mt-[72px] md:mt-[116px]"
     >
       <div className="max-w-screen-xl mx-auto px-4 md:px-8">
         <ol className="flex items-center gap-2 py-3 md:py-3.5 text-sm overflow-x-auto">

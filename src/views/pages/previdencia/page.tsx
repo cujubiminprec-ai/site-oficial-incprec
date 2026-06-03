@@ -62,7 +62,7 @@ export default function PrevidenciaPage() {
       </section>
 
       {/* Tabs */}
-      <section className="bg-white border-b border-gray-100 sticky top-16 md:top-20 z-30">
+      <section className="bg-white border-b border-gray-100 sticky top-[72px] md:top-[116px] z-30">
         <div className="max-w-screen-xl mx-auto px-4 md:px-8">
           <div className="flex items-center gap-0 overflow-x-auto">
             {tabs.map((tab) => (
