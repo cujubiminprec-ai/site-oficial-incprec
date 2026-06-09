@@ -183,7 +183,7 @@ export default function QuemSomosSection() {
           <div className="w-full lg:w-[45%] relative">
             <div className="relative rounded-2xl overflow-hidden h-[360px] md:h-[420px]">
               <img
-                src="https://readdy.ai/api/search-image?query=modern%20public%20institution%20building%20interior%20lobby%20elegant%20atrium%20professional%20governance%20architecture%20clean%20bright%20minimalist%20green&width=900&height=700&seq=about1&orientation=portrait"
+                src={config.quemSomosImagemUrl || "https://readdy.ai/api/search-image?query=modern%20public%20institution%20building%20interior%20lobby%20elegant%20atrium%20professional%20governance%20architecture%20clean%20bright%20minimalist%20green&width=900&height=700&seq=about1&orientation=portrait"}
                 alt="INPREC"
                 className="w-full h-full object-cover object-top"
               />

@@ -40,6 +40,8 @@ const defaultConfig: SiteConfig = {
   redeInstagram: "https://instagram.com/inprec",
   redeYoutube: "https://youtube.com/@inprec",
   redeLinkedin: "",
+  quemSomosImagemUrl: "",
+  nossaHistoriaImagemUrl: "",
 };
 
 interface SiteConfigContextType {

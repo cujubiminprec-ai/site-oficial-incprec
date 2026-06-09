@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useSiteConfig, SiteConfig } from "@/contexts/SiteConfigContext";
 import { configuracoesService, type PrevidenciaStats, previdenciaStatsDefault, type ProgestaoIndicadores, progestaoIndicadoresDefault, type FooterAtalhoItem, footerAtalhosPadrao } from "@/services/configuracoes.service";
+import { uploadService } from "@/services/upload.service";
 
 export default function ConfiguracoesTab() {
   const { config, updateConfig } = useSiteConfig();
@@ -14,6 +15,10 @@ export default function ConfiguracoesTab() {
   const [logoUploading, setLogoUploading] = useState(false);
   const [sloganUploading, setSloganUploading] = useState(false);
   const [progestaoUploading, setProgestaoUploading] = useState(false);
+  const quemSomosFileRef = useRef<HTMLInputElement>(null);
+  const nossaHistoriaFileRef = useRef<HTMLInputElement>(null);
+  const [quemSomosUploading, setQuemSomosUploading] = useState(false);
+  const [nossaHistoriaUploading, setNossaHistoriaUploading] = useState(false);
 
   // ── Estatísticas do Portal de Previdência ────────────────────────────────
   const [prevStats, setPrevStats] = useState<PrevidenciaStats>(previdenciaStatsDefault);
@@ -163,6 +168,36 @@ export default function ConfiguracoesTab() {
     } finally {
       setProgestaoUploading(false);
       if (progestaoFileRef.current) progestaoFileRef.current.value = "";
+    }
+  };
+
+  const handleQuemSomosFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setQuemSomosUploading(true);
+    try {
+      const uploaded = await uploadService.upload(file, "paginas");
+      upd("quemSomosImagemUrl", uploaded.url);
+    } catch {
+      alert("Erro ao enviar a foto. Tente novamente.");
+    } finally {
+      setQuemSomosUploading(false);
+      if (quemSomosFileRef.current) quemSomosFileRef.current.value = "";
+    }
+  };
+
+  const handleNossaHistoriaFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setNossaHistoriaUploading(true);
+    try {
+      const uploaded = await uploadService.upload(file, "paginas");
+      upd("nossaHistoriaImagemUrl", uploaded.url);
+    } catch {
+      alert("Erro ao enviar a foto. Tente novamente.");
+    } finally {
+      setNossaHistoriaUploading(false);
+      if (nossaHistoriaFileRef.current) nossaHistoriaFileRef.current.value = "";
     }
   };
 
@@ -564,6 +599,101 @@ export default function ConfiguracoesTab() {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Fotos das Seções ── */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-6">
+          <h2 className="text-sm font-bold text-gray-900 mb-1 flex items-center gap-2">
+            <i className="ri-image-line" style={{ color: config.primaryColor }}></i>
+            Fotos das Seções
+          </h2>
+          <p className="text-xs text-gray-400 mb-5">Imagens exibidas nas seções "Quem Somos" (home) e "Nossa História" (página Quem Somos).</p>
+
+          {/* Quem Somos */}
+          <div className="mb-6 pb-6 border-b border-gray-100">
+            <p className="text-xs font-bold text-gray-700 mb-3 flex items-center gap-1.5">
+              <i className="ri-group-line text-sm" style={{ color: config.primaryColor }}></i>
+              Foto — Seção "Quem Somos" (Home)
+            </p>
+            <input ref={quemSomosFileRef} type="file" accept="image/*" className="hidden" onChange={handleQuemSomosFileChange} />
+            <div className="flex items-start gap-4">
+              <div className="w-28 h-20 rounded-xl overflow-hidden flex-shrink-0 border border-gray-100 bg-gray-50 flex items-center justify-center">
+                {form.quemSomosImagemUrl ? (
+                  <img src={form.quemSomosImagemUrl} alt="Quem Somos" className="w-full h-full object-cover" />
+                ) : (
+                  <i className="ri-image-line text-2xl text-gray-300"></i>
+                )}
+              </div>
+              <div className="flex-1">
+                <button
+                  type="button"
+                  onClick={() => quemSomosFileRef.current?.click()}
+                  disabled={quemSomosUploading}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-dashed text-xs font-semibold text-gray-600 hover:text-gray-800 transition-all w-full justify-center"
+                  style={{ borderColor: `${config.primaryColor}60`, backgroundColor: `${config.primaryColor}06` }}
+                >
+                  {quemSomosUploading ? (
+                    <><i className="ri-loader-4-line animate-spin"></i> Enviando...</>
+                  ) : (
+                    <><i className="ri-upload-2-line text-sm" style={{ color: config.primaryColor }}></i> Importar do computador</>
+                  )}
+                </button>
+                {form.quemSomosImagemUrl && (
+                  <button
+                    type="button"
+                    onClick={() => upd("quemSomosImagemUrl", "")}
+                    className="mt-2 text-[11px] text-red-500 hover:text-red-700 flex items-center gap-1"
+                  >
+                    <i className="ri-delete-bin-line text-xs"></i> Remover foto
+                  </button>
+                )}
+                <p className="text-[10px] text-gray-400 mt-2">JPG, PNG, WEBP. Proporção retrato recomendada.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Nossa História */}
+          <div>
+            <p className="text-xs font-bold text-gray-700 mb-3 flex items-center gap-1.5">
+              <i className="ri-history-line text-sm" style={{ color: config.primaryColor }}></i>
+              Foto — Seção "Nossa História" (Quem Somos)
+            </p>
+            <input ref={nossaHistoriaFileRef} type="file" accept="image/*" className="hidden" onChange={handleNossaHistoriaFileChange} />
+            <div className="flex items-start gap-4">
+              <div className="w-28 h-20 rounded-xl overflow-hidden flex-shrink-0 border border-gray-100 bg-gray-50 flex items-center justify-center">
+                {form.nossaHistoriaImagemUrl ? (
+                  <img src={form.nossaHistoriaImagemUrl} alt="Nossa História" className="w-full h-full object-cover" />
+                ) : (
+                  <i className="ri-image-line text-2xl text-gray-300"></i>
+                )}
+              </div>
+              <div className="flex-1">
+                <button
+                  type="button"
+                  onClick={() => nossaHistoriaFileRef.current?.click()}
+                  disabled={nossaHistoriaUploading}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-dashed text-xs font-semibold text-gray-600 hover:text-gray-800 transition-all w-full justify-center"
+                  style={{ borderColor: `${config.primaryColor}60`, backgroundColor: `${config.primaryColor}06` }}
+                >
+                  {nossaHistoriaUploading ? (
+                    <><i className="ri-loader-4-line animate-spin"></i> Enviando...</>
+                  ) : (
+                    <><i className="ri-upload-2-line text-sm" style={{ color: config.primaryColor }}></i> Importar do computador</>
+                  )}
+                </button>
+                {form.nossaHistoriaImagemUrl && (
+                  <button
+                    type="button"
+                    onClick={() => upd("nossaHistoriaImagemUrl", "")}
+                    className="mt-2 text-[11px] text-red-500 hover:text-red-700 flex items-center gap-1"
+                  >
+                    <i className="ri-delete-bin-line text-xs"></i> Remover foto
+                  </button>
+                )}
+                <p className="text-[10px] text-gray-400 mt-2">JPG, PNG, WEBP. Proporção paisagem recomendada.</p>
+              </div>
             </div>
           </div>
         </div>

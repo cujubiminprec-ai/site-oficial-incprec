@@ -76,7 +76,7 @@ function HistoriaSection() {
           <div className={`relative ${animClass(isVisible, "slide-right", 150)}`}>
             <div className="w-full h-56 md:h-80 rounded-2xl overflow-hidden">
               <img
-                src="https://readdy.ai/api/search-image?query=modern%20government%20institution%20building%20exterior%20architectural%20facade%20professional%20corporate%20urban%20city%20clean%20white%20structure&width=700&height=500&seq=qs1&orientation=landscape"
+                src={config.nossaHistoriaImagemUrl || "https://readdy.ai/api/search-image?query=modern%20government%20institution%20building%20exterior%20architectural%20facade%20professional%20corporate%20urban%20city%20clean%20white%20structure&width=700&height=500&seq=qs1&orientation=landscape"}
                 alt="Sede do INPREC"
                 className="w-full h-full object-cover object-top"
               />

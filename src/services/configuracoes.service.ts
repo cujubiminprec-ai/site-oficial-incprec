@@ -123,6 +123,8 @@ export interface SiteConfigApi {
   redeInstagram: string;
   redeYoutube: string;
   redeLinkedin: string;
+  quemSomosImagemUrl: string;
+  nossaHistoriaImagemUrl: string;
   [key: string]: any;
 }
 
@@ -165,6 +167,8 @@ const defaultConfig: SiteConfigApi = {
   redeInstagram: "https://instagram.com/inprec",
   redeYoutube: "https://youtube.com/@inprec",
   redeLinkedin: "",
+  quemSomosImagemUrl: "",
+  nossaHistoriaImagemUrl: "",
 };
 
 function boolValue(value: unknown, fallback: boolean): boolean {
